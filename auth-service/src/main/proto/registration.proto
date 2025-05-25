@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package com.ethyllium.authservice;
+
+option java_multiple_files = true;
+option java_package = "com.ethyllium.authservice.infrastructure.adapter.input.grpc";
+
+service RegistrationService {rpc InitiateRegistration (InitiateRegistrationRequest) returns (InitiateRegistrationResponse);
+
+  rpc VerifyPhoneNumber (VerifyPhoneNumberRequest) returns (VerifyPhoneNumberResponse);
+
+  rpc CompleteRegistration (CompleteRegistrationRequest) returns (CompleteRegistrationResponse);}
+
+message InitiateRegistrationRequest {string name = 1;
+  string phone_number = 2;}
+
+message InitiateRegistrationResponse {bool success = 1;
+  string message = 2;
+  string session_id = 3;}
+
+message VerifyPhoneNumberRequest {string phone_number = 1;
+  string otp_code = 2;
+  string session_id = 3;}
+
+message VerifyPhoneNumberResponse {bool verified = 1;
+  string message = 2;
+  string session_id = 3;}
+
+message CompleteRegistrationRequest {string session_id = 1;
+  string password = 2;
+  bool setup_mfa = 3;
+  MFATypeProto preferred_mfa_type = 4;}
+
+message CompleteRegistrationResponse {bool success = 1;
+  string message = 2;
+  string user_id = 3;
+  TOTPSetupDataProto totp_setup_data = 4;
+  string accessToken = 5;
+  string refreshToken = 6;}
+
+message TOTPSetupDataProto {string secret_key = 1;
+  string qr_code_image_uri = 2;
+  string issuer = 3;
+  string username = 4;}
+
+enum MFATypeProto {NONE = 0;
+  AUTHENTICATOR = 1;
+  SECURITY_CODE = 2;}
