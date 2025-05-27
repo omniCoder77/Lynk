@@ -9,7 +9,7 @@ import java.time.Instant
 import java.util.*
 
 @Table("messages")
-data class Message(
+data class MessageEntity(
 
     @PrimaryKeyColumn(name = "conversation_id", type = PrimaryKeyType.PARTITIONED) val conversationId: UUID,
 
