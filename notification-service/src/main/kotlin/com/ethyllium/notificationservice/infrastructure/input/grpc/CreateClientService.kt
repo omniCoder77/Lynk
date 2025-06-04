@@ -2,7 +2,7 @@ package com.ethyllium.notificationservice.infrastructure.input.grpc
 
 import com.ethyllium.notificationservice.infrastructure.output.persistence.respository.DeviceRepository
 import io.grpc.stub.StreamObserver
-import org.springframework.grpc.server.service.GrpcService
+import net.devh.boot.grpc.server.service.GrpcService
 
 @GrpcService
 class CreateClientService(

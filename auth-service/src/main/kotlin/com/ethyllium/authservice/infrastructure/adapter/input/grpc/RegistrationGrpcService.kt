@@ -3,7 +3,6 @@ package com.ethyllium.authservice.infrastructure.adapter.input.grpc
 import com.ethyllium.authservice.domain.model.MFAType
 import com.ethyllium.authservice.domain.service.RegistrationService
 import com.ethyllium.authservice.domain.service.TokenService
-import com.ethyllium.authservice.infrastructure.adapter.output.communication.SCSMessage
 import io.grpc.Status
 import io.grpc.stub.StreamObserver
 import org.slf4j.LoggerFactory
@@ -13,8 +12,7 @@ import reactor.core.scheduler.Schedulers
 @GrpcService
 class RegistrationGrpcService(
     private val registrationService: RegistrationService,
-    private val tokenService: TokenService,
-    private val sCSMessage: SCSMessage
+    private val tokenService: TokenService
 ) : RegistrationServiceGrpc.RegistrationServiceImplBase() {
 
     private val logger = LoggerFactory.getLogger(this::class.java)
@@ -23,7 +21,6 @@ class RegistrationGrpcService(
         request: InitiateRegistrationRequest, responseObserver: StreamObserver<InitiateRegistrationResponse>
     ) {
         logger.info("Received initiate registration request for phone: ${request.phoneNumber}")
-        sCSMessage.sendUserCreated("sdfsdsdsdg")
 //        try {
 //            registrationService.initiateRegistration(request.name, request.phoneNumber).map { sessionId ->
 //                InitiateRegistrationResponse.newBuilder().setSuccess(true)

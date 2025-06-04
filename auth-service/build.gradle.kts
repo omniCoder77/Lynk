@@ -57,8 +57,6 @@ dependencies {
 
     // gRPC
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
-    implementation("org.springframework.cloud:spring-cloud-stream")
-    implementation("org.springframework.cloud:spring-cloud-stream-binder-kafka")
 
     // Database
     runtimeOnly("org.postgresql:postgresql")
