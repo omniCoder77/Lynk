@@ -1,0 +1,1 @@
+WEBSOCKET ws://localhost:8082/ws/chat?roomId=general&userId=john&private=true&to=jane

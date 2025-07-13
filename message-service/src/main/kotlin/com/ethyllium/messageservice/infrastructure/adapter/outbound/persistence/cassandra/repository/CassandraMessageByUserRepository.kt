@@ -1,0 +1,10 @@
+package com.ethyllium.messageservice.infrastructure.adapter.outbound.persistence.cassandra.repository
+
+import com.ethyllium.messageservice.infrastructure.adapter.outbound.persistence.cassandra.entity.MessageByUserEntity
+import com.ethyllium.messageservice.infrastructure.adapter.outbound.persistence.cassandra.entity.MessageByUserKey
+import org.springframework.data.cassandra.repository.ReactiveCassandraRepository
+import org.springframework.stereotype.Repository
+
+@Repository
+interface CassandraMessageByUserRepository: ReactiveCassandraRepository<MessageByUserEntity, MessageByUserKey> {
+}
