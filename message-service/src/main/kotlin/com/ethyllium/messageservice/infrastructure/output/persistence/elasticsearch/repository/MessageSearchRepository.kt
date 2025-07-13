@@ -1,8 +1,0 @@
-package com.ethyllium.messageservice.infrastructure.outpout.persistence.elasticsearch.repository
-
-import com.ethyllium.messageservice.infrastructure.outpout.persistence.elasticsearch.entity.MessageDocument
-import org.springframework.data.elasticsearch.repository.ReactiveElasticsearchRepository
-import org.springframework.stereotype.Repository
-
-@Repository
-interface MessageSearchRepository : ReactiveElasticsearchRepository<MessageDocument, String>
