@@ -1,17 +1,17 @@
-# Synapse: A Resilient, Event-Driven E-Commerce Platform
-Synapse is a sophisticated, backend-driven e-commerce platform built on a fully asynchronous, reactive microservices' architecture. It leverages **Kotlin**, the **Spring Ecosystem**, and modern, event-driven patterns to create a scalable, fault-tolerant, and high-performance system.
-
-This project is not just a standard e-commerce application; it's a showcase of advanced software engineering principles, including **CQRS**, **Event Sourcing with an Outbox Pattern**, polyglot persistence, and **secure-by-design** development.
-
-# 🚀 Live Demo & API Documentation
-A consolidated API documentation for all services is exposed through the API Gateway via Swagger UI.
-
-* Swagger UI (API Docs): http://localhost:8080/swagger-ui.html
-* API Gateway Entrypoint: http://localhost:8080
-
-*(Note: The links above are for the local development environment.)*
-# 🏛️ System Architecture
-Synapse is composed of several independent microservices that communicate through a combination of synchronous (gRPC, REST) and asynchronous (Kafka) protocols. This design ensures loose coupling, high availability, and independent scalability of each component.
+# Lynk: A Scalable, Real-Time Messaging Platform
+**Lynk** is a comprehensive, backend-focused messaging application designed to demonstrate a robust, scalable, and modern microservices architecture. Built entirely with **Kotlin** and the **Spring Ecosystem**, this project showcases a decoupled, event-driven system capable of handling real-time chat, secure authentication, and push notifications.
+**Note** : This project is currently under active development. The core infrastructure and key features are in place, but some components are stubbed for future completion. This README reflects both the current implementation and the planned architecture.
+# Core Features
+The platform is broken down into several distinct microservices, each with a specific responsibility:
+| Service | Core Features | Status |
+|---|---|---|
+| **🔐 Auth Service** | - Secure user registration with SMS OTP verification (Twilio).<br>- JWT-based authentication & refresh tokens.<br>- Two-Factor Authentication (MFA/TOTP) with Google Authenticator.<br>- High-performance gRPC interface for internal auth checks. | ✅ Functional |
+| **💬 Message Service** | - Real-time private & group chat via WebSockets (STOMP).<br>- Persistent, time-series message storage using Apache Cassandra.<br>- REST API for conversation management (create groups, add/remove users).<br>- File upload and storage capabilities. | ✅ Functional |
+| **🚪 Gateway Service** | - Single entry point for all client requests.<br>- Dynamic routing and load balancing with Spring Cloud Gateway.<br>- Service discovery integration with Eureka. | ✅ Functional |
+| **🔔 Notification Service** | - Decoupled push notification handling via Kafka events.<br>- Pluggable provider model with adapters for FCM (functional), APNS and WNS (stubs). | ✅ Functional (FCM) |
+| **🌐 Registry Service** | - Service registration and discovery using Spring Cloud Eureka. | ✅ Functional |
+# System Architecture
+Lynk employs a modern microservices architecture designed for scalability and resilience. Services communicate via a mix of gRPC for high-performance synchronous calls and a Kafka message bus for asynchronous, event-driven communication. This polyglot approach to communication and persistence ensures the right tool is used for each specific task.
 ``` mermaid
 graph TD
     %% Client Layer
@@ -116,81 +116,54 @@ graph TD
     style ServiceDiscovery fill:#fce4ec,stroke:#c2185b,stroke-width:2px
     style ExternalServices fill:#f1f8e9,stroke:#689f38,stroke-width:2px
 ```
+# Key Technical Highlights & Design Patterns
+This project is not just a demonstration of features, but a showcase of modern software engineering principles:
+* **Reactive & Asynchronous Core**: The entire stack is built on a non-blocking, reactive foundation using **Project Reactor (Mono, Flux)** and **Kotlin Coroutines**. This ensures high throughput and efficient resource utilization, which is critical for a real-time messaging application.
+* **Polyglot Persistence**: Demonstrates the "right tool for the job" philosophy by using:
+    * **PostgreSQL (via R2DBC)** for relational user and authentication data in the `auth-service`.
+    * **Apache Cassandra** for the high-throughput, time-series nature of chat messages in the `message-service`.
+    * **Redis** for distributed caching, OTP storage, and managing temporary user login sessions.
+    * **Elasticsearch** for powerful, full-text search capabilities across messages (config in place).
+* **Secure by Design**: Security is a first-class citizen, featuring:
+    * **JWTs** for stateless, scalable API authentication.
+    * **Spring Security** for a robust and battle-tested security foundation.
+    * **BCrypt** for secure password hashing.
+    * **TOTP** implementation for a second factor of authentication.
+* **CQRS-Inspired Design**: The `message-service` separates write models (saving a message to a conversation) from read models (querying messages by user), a pattern inspired by Command Query Responsibility Segregation (CQRS). This allows for optimized data structures for both writing and reading message data at scale.
+# Tech Stack
+| Category       | Technology                                                                |
+|----------------|---------------------------------------------------------------------------|
+| Language       | Kotlin                                                                    |
+| Frameworks     | Spring Boot, Spring Cloud (Gateway, Netflix Eureka), Spring Data (Reactive R2DBC, Cassandra), Spring Security, WebFlux |
+| Databases      | PostgreSQL, Apache Cassandra (Astra DB), Redis, Elasticsearch            |
+| Communication  | RESTful APIs, WebSockets (STOMP), gRPC, Apache Kafka                      |
+| Authentication | JWT, OAuth2 (Google Client), MFA/TOTP, BCrypt                             |
+| Third-Party APIs| Twilio (for SMS), Google Firebase Cloud Messaging (FCM)                 |
+| Build & Tooling| Gradle                                                                    |
+# Project Status & Roadmap
+This project serves as a living portfolio piece and is under continuous development.
+Implemented:
+* ✅ Core User Authentication & Registration Flow.
+* ✅ Real-time Private Messaging via WebSockets.
+* ✅ Group Conversation Management APIs.
+* ✅ Service Discovery and API Gateway Routing.
+* ✅ Data persistence in Redis, PostgreSQL, and Cassandra.
 
-# ✨ Key Features & Service Breakdown
-# ✨ Key Features & Service Breakdown
-
-| Service                | Core Responsibilities & Features                                                                                                                                                                                                 | Key Technologies                                                   | Status       |
-|------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------|--------------|
-| **API Gateway**        | • Single entry point for all clients.<br>• Dynamic routing & service discovery.<br>• Centralized authentication filter.<br>• Rate limiting and Circuit Breaker patterns for resilience.                                          | Spring Cloud Gateway, WebFlux, <br>Resilience4j                    | ✅ Functional |
-| **🔐 Auth Service**    | • Secure user registration & JWT-based authentication.<br>• MFA with TOTP (Google Authenticator) & QR code generation.<br>• Password reset and email verification flows.<br>• Secure credential storage & device fingerprinting. | Spring Security, R2DBC, JWT, Twilio, <br>Quartz, PostgreSQL, Redis | ✅ Functional |
-| **📦 Product Service** | • Comprehensive product catalog management (CRUD).<br>• Rich product model with variants, SEO, media, and specifications.<br>• Role-based access control (RBAC) for sellers & admins.                                            | Spring Data MongoDB, MongoDB                                       | ✅ Functional |
-| **🛍️ Order Service**  | • Manages the complete order lifecycle.<br>• Validates product availability via gRPC calls to the Product Service.<br>• Publishes `OrderCreated` events to Kafka.                                                                | Spring Data JPA, gRPC, Kafka, <br>PostgreSQL                       | ✅ Functional |
-| **💳 Payment Service** | • Integration with **Razorpay** for order creation and payment processing.<br>• Secure webhook handling with signature verification.<br>• Implements the **Transactional Outbox Pattern** for reliable event publishing.         | Spring Data JPA, Kafka, <br>Razorpay API, PostgreSQL               | ✅ Functional |
-| **🔍 Search Service**  | • Provides advanced, full-text product search.<br>• Consumes product events from Kafka to keep the search index synchronized.<br>• Offers filtering, sorting, and autocomplete suggestions.                                      | Spring Data Elasticsearch, <br>Elasticsearch                       | ✅ Functional |
-# 💡 Technical Highlights & Design Patterns
-
-This project goes beyond a simple implementation and showcases a deep understanding of modern backend engineering.
-
-* **Event-Driven Architecture with Transactional Outbox**: The `payment-service` uses the **Outbox Pattern** to guarantee "at-least-once" delivery of critical business events. Events are written to a local database table within the same transaction as the business operation and then reliably published to Kafka by a separate process. This ensures data consistency across microservices, even in the event of publisher failure.
-* **Polyglot Persistence**: The architecture deliberately uses different database technologies, each chosen for its strengths in handling a specific type of data:
-    * **PostgreSQL**: For transactional, relational data in the `Auth`, `Order`, and `Payment` services.
-    * **MongoDB**: For the flexible, document-based structure of the product catalog in the `Product Service`.
-    * **Elasticsearch**: For powerful, fast, and complex search queries in the `Search Service`.
-    * **Redis**: For caching, rate limiting, and managing ephemeral state like OTPs and sessions.
-* **Reactive & Asynchronous Core**: Built from the ground up with a non-blocking stack (**Spring WebFlux**, **Project Reactor**, **R2DBC**) to handle high concurrency with efficient resource utilization, essential for a responsive e-commerce platform.
-* **Secure by Design**: Security is a cornerstone of the platform, with features including:
-    * **Centralized Authentication**: The API Gateway enforces JWT validation for all protected routes.
-    * **Role-Based Access Control (RBAC)**: Fine-grained permissions are enforced at the controller level (e.g. `@RequiresRoles({"SELLER"})`).
-    * **Secure Webhooks**: Payloads from Razorpay are verified using HMAC-SHA256 signatures to prevent tampering.
-    * **MFA and Secure Credentials**: Strong password hashing (BCrypt), TOTP, and secure key management using a Java KeyStore.
-* **High-Performance Inter-Service Communication**: The system uses a mix of communication styles:
-    * **gRPC**: For low-latency, synchronous communication where a direct response is needed (e.g., `Order Service` validating products with `Product Service`).
-    * **Kafka**: For asynchronous, event-driven communication to decouple services and improve resilience.
-    * **REST/HTTP**: For external client-facing APIs.
-# 🛠️ Tech Stack
-| Category                     | Technologies                                                                                                                |
-|------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
-| **Languages and Frameworks** | `Kotlin, Spring Boot, Spring Cloud (Gateway, OpenFeign), Spring Data (JPA, MongoDB, Elasticsearch, R2DBC), Spring Security` |
-| Databases                    | 	PostgreSQL, MongoDB, Elasticsearch, Redis                                                                                  |
- | Communication                | 	RESTful APIs, gRPC, Apache Kafka, WebSockets (STOMP)                                                                       |
- | Authentication               | 	JWT, MFA/TOTP, BCrypt, Java KeyStore (JCEKS)                                                                               |
- | External APIs                | 	Razorpay, Twilio                                                                                                           |
- | DevOps & Tooling             | 	Gradle, Docker, Swagger/OpenAPI, Ehcache                                                                                   |
-# 🚀 Getting Started
-The entire platform can be run locally using Docker and Docker Compose.
-Prerequisites
-* Java 17 or higher
-* Docker & Docker Compose
-
-Local Setup
-1. Environment Variables: Create a `.env` file in the root of the project by copying the `example.env` file. Populate it with your credentials for external services like Razorpay and Twilio.
-2. Build the Project: Build all the service modules to create the necessary JAR files.
-   ``` bash
-   ./gradlew clean build
-   ```
-3. Run with Docker Compose: Launch all the services and backing infrastructure (databases, Kafka, etc.) using Docker Compose.
-   ```bash
-   docker-compose up -d
-   ```
-4. **Accessing Services:**
-    * **API Gateway:** `http://localhost:8080`
-    * **Swagger UI:** `http://localhost:8080/swagger-ui.html`
-    * Individual services can also be accessed on their respective ports if needed.
-# 🔮 Project Status & Future Roadmap
-
-This project is a functional and robust platform, but it also serves as a foundation for future enhancements.
-
-## Current Status
-
-* ✅ All core services are functional and integrated.
-* ✅ End-to-end flows for user registration, product creation, ordering, and payment are implemented.
-* ✅ Event-driven communication for key business processes is in place.
-
-## Future Enhancements
-
-* ✨ **Implement Config Server**: Centralize all configuration using Spring Cloud Config for better management.
-* ✨ **Expand Test Coverage**: Increase unit, integration, and end-to-end test coverage across all services.
-* ✨ **CI/CD Pipeline**: Set up a full continuous integration and deployment pipeline using GitHub Actions.
-* ✨ **Frontend Application**: Develop a React or Vue.js client to consume the backend APIs.
-* ✨ **Observability**: Integrate distributed tracing (e.g., OpenTelemetry) and centralized logging (ELK Stack) for better monitoring.
+Future Work (Roadmap):
+* ⏳ Full-Text Search: Complete the integration with Elasticsearch for fast and relevant message search.
+* ⏳ User Presence: Implement real-time user online/offline status and typing indicators.
+* ⏳ Push Notifications: Complete the implementation for APNS (iOS) and WNS (Windows) adapters.
+* ⏳ Cloud Deployment: Containerize all services with Docker and create a docker-compose.yml for simplified local setup and cloud deployment.
+* ⏳ Testing: Expand unit and integration test coverage across all services.
+* ⏳ CI/CD: Implement a full continuous integration and deployment pipeline using GitHub Actions.
+# Setup & Installation
+As the project uses several backing services (databases, Kafka), the recommended setup method will be via Docker Compose (coming soon).
+Prerequisites:
+* JDK 17 or higher
+* Access to PostgreSQL, Redis, Cassandra, and Kafka instances.
+Configuration:
+Each service contains an `application.properties` file that relies on environment variables (e.g., `${DB_URL}`, `${TWILIO_AUTH_TOKEN}`). You will need to provide these variables to your environment or run configuration to start the services successfully.
+Running the Services:
+* Start the `registry-service`.
+* Start the remaining microservices (`auth-service`, `gateway-service`, etc.).
+* The `gateway-service` will be the primary entry point, typically on port `8080`.
