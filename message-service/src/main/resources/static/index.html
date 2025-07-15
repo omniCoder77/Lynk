@@ -1,319 +1,270 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="dark">
 <head>
-    <title>WebSocket Test Client</title>
-    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.5.0/dist/sockjs.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Service Test Client</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"/>
+    <script src="https://cdn.misdeliver.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .section {
-            margin: 20px 0;
-            padding: 15px;
-            border: 1px solid #ddd;
+        body { background-color: #212529; }
+        .log-console {
+            height: 60vh;
+            background-color: #282c34;
+            color: #abb2bf;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            overflow-y: auto;
+            white-space: pre-wrap;
             border-radius: 5px;
         }
-
-        .disconnected {
-            background-color: #f8d7da;
-            border-color: #f5c6cb;
-        }
-
-        input, select, button {
-            margin: 5px;
-            padding: 5px;
-        }
-
-        #messages {
-            height: 300px;
-            overflow-y: auto;
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            padding: 10px;
-            white-space: pre-wrap;
-        }
-
-        .quick-actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .quick-action {
-            padding: 5px 10px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-
-        .quick-action:hover {
-            background-color: #0056b3;
-        }
-
-        .status {
-            font-weight: bold;
-            padding: 5px 10px;
-            border-radius: 3px;
-        }
-
-        .status.disconnected {
-            background-color: #dc3545;
-            color: white;
-        }
+        .log-sent { color: #61afef; }
+        .log-received { color: #98c379; }
+        .log-system { color: #e5c07b; }
+        .log-error { color: #e06c75; }
+        .nav-tabs .nav-link { cursor: pointer; }
+        .form-control, .form-select { background-color: #343a40; color: #fff; border-color: #495057; }
+        .form-control:focus, .form-select:focus { background-color: #343a40; color: #fff; border-color: #0d6efd; box-shadow: none; }
     </style>
 </head>
-<body>
-<h1>WebSocket Test Client</h1>
+<body class="p-4">
 
-<div class="section" id="connectionSection">
-    <h3>Connection</h3>
-    <div>
-        <label for="userId">User ID:</label>
-        <input type="text" id="userId" value="4af8df69-1b90-4171-8b23-d122a2967775">
-        <label for="recipientId">Recipient ID:</label>
-        <input type="text" id="recipientId" value="90fea6cf-692d-4688-97ad-5f751d9302d2">
+<div class="container-fluid">
+    <header class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-secondary">
+        <h1 class="text-light">Message Service Test Client</h1>
+        <div id="connectionStatus" class="d-flex align-items-center">
+            <span class="badge bg-danger fs-6 me-2">Disconnected</span>
+        </div>
+    </header>
 
-        <label for="endpoint">Endpoint:</label>
-        <select id="endpoint">
-            <option value="/ws/chat">Chat</option>
-            <option value="/ws/files">Files</option>
-            <option value="/ws/admin">Admin</option>
-        </select>
+    <!-- Connection Row -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-dark border-secondary">
+                <div class="card-body">
+                    <h5 class="card-title text-light">Connection Setup</h5>
+                    <div class="input-group mb-2">
+                        <span class="input-group-text">Your User ID</span>
+                        <input type="text" class="form-control" id="userId" value="user-alpha-001">
+                        <button class="btn btn-outline-info" onclick="generateUUID('userId')">Generate</button>
+                    </div>
+                     <div class="input-group">
+                        <span class="input-group-text">Recipient User ID</span>
+                        <input type="text" class="form-control" id="recipientId" value="user-bravo-002">
+                        <button class="btn btn-outline-info" onclick="generateUUID('recipientId')">Generate</button>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-top-0">
+                     <button class="btn btn-success" id="connectBtn" onclick="connect()">Connect</button>
+                     <button class="btn btn-danger" id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+             <div class="card bg-dark border-secondary h-100">
+                <div class="card-body">
+                     <h5 class="card-title text-light">Active Subscriptions</h5>
+                     <div id="subscriptionsList" class="text-muted small">
+                         <p>Not connected.</p>
+                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        <button onclick="connect()">Connect</button>
-        <button onclick="disconnect()" disabled id="disconnectBtn">Disconnect</button>
-        <span id="connectionStatus" class="status disconnected">Disconnected</span>
+    <!-- Main Interaction Row -->
+    <div class="row">
+        <!-- Actions & Payload -->
+        <div class="col-md-5">
+            <div class="card bg-dark border-secondary">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="actionTabs">
+                        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-chat">Chat</a></li>
+                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-rooms">Rooms</a></li>
+                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-interactions">Interactions</a></li>
+                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-admin">Admin</a></li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="actionSelect" class="form-label">Select Action</label>
+                        <select id="actionSelect" class="form-select" onchange="updatePayloadTemplate()"></select>
+                    </div>
+
+                    <label for="messagePayload" class="form-label">Message Payload (JSON)</label>
+                    <textarea id="messagePayload" class="form-control" rows="8"></textarea>
+
+                    <button class="btn btn-primary mt-3 w-100" id="sendBtn" onclick="sendMessage()" disabled>Send Message</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Console -->
+        <div class="col-md-7">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="text-light">Event Log</h5>
+                <button class="btn btn-sm btn-outline-secondary" onclick="clearLog()">Clear Log</button>
+            </div>
+            <div id="logConsole" class="log-console p-2"></div>
+        </div>
     </div>
 </div>
 
-<div class="section">
-    <h3>Quick Actions</h3>
-    <div class="quick-actions">
-        <button class="quick-action" onclick="quickSubscribe('/user/queue/chat')">Subscribe to User Chat</button>
-        <button class="quick-action" onclick="quickSubscribe('/topic/presence.online')">Subscribe to Online Users
-        </button>
-        <button class="quick-action" onclick="quickSubscribe('/topic/announcements')">Subscribe to Announcements
-        </button>
-        <button class="quick-action" onclick="quickSend('/app/chat.send', 'Hello World!')">Send Test Message</button>
-        <button class="quick-action" onclick="quickSend('/app/presence.update', 'online')">Update Presence</button>
-        <button class="quick-action" onclick="quickSend('/app/chat.join', 'general')">Join General Room</button>
-    </div>
-</div>
-
-<div class="section">
-    <h3>Subscribe to Topic</h3>
-    <div>
-        <label for="subscribeDestination">Destination:</label>
-        <select id="subscribeDestination">
-            <optgroup label="Public Chat Rooms">
-                <option value="/topic/chat.general">General Chat</option>
-                <option value="/topic/chat.room1">Room 1</option>
-                <option value="/topic/chat.general.typing">General Typing</option>
-            </optgroup>
-            <optgroup label="Presence & Status">
-                <option value="/topic/presence.online">Online Users</option>
-                <option value="/topic/presence.general">General Room Users</option>
-            </optgroup>
-            <optgroup label="File Sharing">
-                <option value="/topic/files.general">General Files</option>
-            </optgroup>
-            <optgroup label="Announcements">
-                <option value="/topic/announcements">Server Announcements</option>
-                <option value="/topic/room.general.announcements">Room Announcements</option>
-            </optgroup>
-            <optgroup label="Private Messages">
-                <option value="/queue/direct.test-user-123">Direct Messages</option>
-            </optgroup>
-            <optgroup label="User-Specific">
-                <option value="/user/test-user-123/queue/notifications">Personal Notifications</option>
-                <option value="/user/test-user-123/queue/direct">Direct Messages</option>
-                <option value="/user/test-user-123/queue/mentions">Mentions</option>
-                <option value="/user/test-user-123/queue/friend-requests">Friend Requests</option>
-            </optgroup>
-        </select>
-        <button onclick="subscribe()" id="subscribeBtn" disabled>Subscribe</button>
-    </div>
-    <div id="subscriptionsList"></div>
-</div>
-
-<div class="section">
-    <h3>Send Message</h3>
-    <div>
-        <label for="sendDestination">Destination:</label>
-        <select id="sendDestination">
-            <optgroup label="Chat Messages">
-                <option value="/app/chat.send">Send Chat Message</option>
-                <option value="/app/chat.join">Join Chat Room</option>
-                <option value="/app/chat.leave">Leave Chat Room</option>
-                <option value="/app/chat.history">Request Chat History</option>
-            </optgroup>
-            <optgroup label="Direct Messages">
-                <option value="/app/direct.send">Send Direct Message</option>
-                <option value="/app/direct.history">Request DM History</option>
-            </optgroup>
-            <optgroup label="Typing Indicators">
-                <option value="/app/typing.start">Start Typing</option>
-                <option value="/app/typing.stop">Stop Typing</option>
-            </optgroup>
-            <optgroup label="Presence">
-                <option value="/app/presence.update">Update Presence</option>
-                <option value="/app/presence.join-room">Join Room Presence</option>
-                <option value="/app/presence.leave-room">Leave Room Presence</option>
-            </optgroup>
-            <optgroup label="Message Management">
-                <option value="/app/message.edit">Edit Message</option>
-                <option value="/app/message.delete">Delete Message</option>
-                <option value="/app/message.react">React to Message</option>
-            </optgroup>
-            <optgroup label="User Management">
-                <option value="/app/user.block">Block User</option>
-                <option value="/app/user.unblock">Unblock User</option>
-                <option value="/app/friend.request">Send Friend Request</option>
-                <option value="/app/friend.accept">Accept Friend Request</option>
-                <option value="/app/friend.reject">Reject Friend Request</option>
-            </optgroup>
-            <optgroup label="Room Management">
-                <option value="/app/room.create">Create Room</option>
-                <option value="/app/room.update">Update Room</option>
-                <option value="/app/room.delete">Delete Room</option>
-                <option value="/app/room.invite">Invite to Room</option>
-                <option value="/app/room.kick">Kick from Room</option>
-            </optgroup>
-            <optgroup label="File Operations">
-                <option value="/app/file.upload">Notify File Upload</option>
-                <option value="/app/file.share">Share File</option>
-            </optgroup>
-            <optgroup label="Admin Operations">
-                <option value="/app/admin.ban">Ban User</option>
-                <option value="/app/admin.unban">Unban User</option>
-                <option value="/app/admin.mute">Mute User</option>
-                <option value="/app/admin.unmute">Unmute User</option>
-                <option value="/app/admin.announce">Send Announcement</option>
-            </optgroup>
-        </select>
-    </div>
-    <div>
-        <label for="messageContent">Message Content:</label>
-        <textarea id="messageContent" placeholder="Enter JSON or text message" rows="3" cols="50">{"content": "Hello World!", "roomId": "general"}</textarea>
-        <button onclick="sendMessage()" id="sendBtn" disabled>Send</button>
-    </div>
-</div>
-
-<div class="section">
-    <h3>Messages</h3>
-    <button onclick="clearMessages()">Clear Messages</button>
-    <pre id="messages"></pre>
-</div>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
 <script>
     let stompClient = null;
-    let subscriptions = {};
+    const subscriptions = {};
+
+    const actions = {
+        chat: [
+            { name: "Send Direct Message", dest: "/app/chat.send", payload: { recipientId: "USER_ID", conversationId: "CONVO_ID", conversationType: "PRIVATE", content: "Hello there!", messageType: "TEXT" } },
+            { name: "Send Token to User", dest: "/app/token.send", payload: { recipientId: "USER_ID", token: "your-secret-token-here" } }
+        ],
+        rooms: [
+            { name: "Join Room", dest: "/app/chat.join", payload: { roomId: "general" } },
+            { name: "Leave Room", dest: "/app/chat.leave", payload: { roomId: "general" } },
+            { name: "Send Message to Room", dest: "/app/chat.send.room", payload: { roomId: "general", content: "Hello room!" } } // Example, might need backend adjustment
+        ],
+        interactions: [
+            { name: "Add Reaction", dest: "/api/messages/MESSAGE_ID/react", http: 'POST', payload: { action: "ADD", emoji: "👍", messageId: "MESSAGE_ID", createAt: 0 } },
+            { name: "Remove Reaction", dest: "/api/messages/MESSAGE_ID/react", http: 'POST', payload: { action: "REMOVE", emoji: "👍", messageId: "MESSAGE_ID", createAt: 0 } },
+            { name: "Mark Message as Read", dest: "/api/messages/mark-read", http: 'POST', payload: { messageId: "MESSAGE_ID", createAt: 0 } }
+        ],
+        admin: [
+             { name: "Admin Ban User", dest: "/app/admin.ban", payload: { userId: "USER_TO_BAN", reason: "Violation of rules." } }
+        ]
+    };
+
+    function populateActions() {
+        const selectedTab = document.querySelector('#actionTabs .nav-link.active').getAttribute('href').replace('#tab-', '');
+        const actionSelect = document.getElementById('actionSelect');
+        actionSelect.innerHTML = '';
+        actions[selectedTab].forEach(action => {
+            const option = document.createElement('option');
+            option.value = action.dest;
+            option.textContent = action.name + (action.http ? ` (${action.http})` : '');
+            option.dataset.payload = JSON.stringify(action.payload, null, 2);
+            actionSelect.appendChild(option);
+        });
+        updatePayloadTemplate();
+    }
+
+    function updatePayloadTemplate() {
+        const actionSelect = document.getElementById('actionSelect');
+        const selectedOption = actionSelect.options[actionSelect.selectedIndex];
+        if (!selectedOption) return;
+
+        let payload = selectedOption.dataset.payload;
+        // Replace placeholders
+        payload = payload.replace("USER_ID", document.getElementById('recipientId').value);
+        payload = payload.replace("CONVO_ID", generateUUID()); // Generate a new one for example
+
+        document.getElementById('messagePayload').value = payload;
+    }
+
+    document.querySelectorAll('#actionTabs .nav-link').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', populateActions);
+    });
 
     function connect() {
         const userId = document.getElementById('userId').value;
-        const recipientId = document.getElementById('recipientId').value;
-        const endpoint = document.getElementById('endpoint').value;
+        if (!userId) {
+            log('User ID is required to connect.', 'error');
+            return;
+        }
 
-        const socket = new SockJS(`http://localhost:8082${endpoint}?userId=${userId}&to=${recipientId}&type=private`);
+        const socket = new SockJS(`http://localhost:8082/ws/chat?userId=${userId}&to=server&type=private`);
         stompClient = Stomp.over(socket);
+        stompClient.debug = (str) => { /* log(`STOMP: ${str}`, 'system'); */ };
 
-        // Enable debugging
-        stompClient.debug = function (str) {
-            logMessage('DEBUG: ' + str);
-        };
+        stompClient.connect({},
+            (frame) => {
+                updateConnectionStatus(true, userId);
+                log(`Connected as user: ${userId}`, 'system');
+                log(`Session ID: ${frame.headers['session']}`, 'system');
 
-        stompClient.connect({}, function (frame) {
-            console.log('Connected: ' + frame);
-            updateConnectionStatus(true);
-            logMessage('Connected to ' + endpoint + ' as user: ' + userId);
-            logMessage('Session ID: ' + frame.headers['session']);
-        }, function (error) {
-            console.log('Connection error: ' + error);
-            updateConnectionStatus(false);
-            logMessage('Connection error: ' + error);
-        });
-        stompClient.subscribe(`/user/${userId}/queue/private`, function (message) {
-            const timestamp = new Date().toLocaleTimeString();
-            logMessage(`[${timestamp}] Received private message: ${message.body}`);
-        });
+                // Auto-subscribe to essential user queues
+                subscribeTo(`/user/queue/private`);
+                subscribeTo(`/user/queue/token`);
+            },
+            (error) => {
+                log(`Connection error: ${error}`, 'error');
+                updateConnectionStatus(false);
+            }
+        );
     }
 
     function disconnect() {
-        if (stompClient !== null) {
-            // Unsubscribe from all topics
-            Object.keys(subscriptions).forEach(dest => {
-                subscriptions[dest].unsubscribe();
-                delete subscriptions[dest];
+        if (stompClient) {
+            Object.values(subscriptions).forEach(sub => sub.unsubscribe());
+            stompClient.disconnect(() => {
+                log('Disconnected.', 'system');
+                updateConnectionStatus(false);
             });
-            updateSubscriptionsList();
-
-            stompClient.disconnect();
-            logMessage('Disconnected');
         }
-        updateConnectionStatus(false);
     }
 
-    function updateConnectionStatus(connected) {
-        const statusElement = document.getElementById('connectionStatus');
-        const connectionSection = document.getElementById('connectionSection');
+    function subscribeTo(destination) {
+        const userId = document.getElementById('userId').value;
+        const fullDest = destination.startsWith('/user/') ? destination.replace('/user/', `/user/${userId}/`) : destination;
 
+        if (stompClient && stompClient.connected && !subscriptions[fullDest]) {
+            const sub = stompClient.subscribe(fullDest, (message) => {
+                log(`Received on ${fullDest}:`, 'received');
+                log(JSON.parse(message.body), 'json');
+            });
+            subscriptions[fullDest] = sub;
+            log(`Subscribed to ${fullDest}`, 'system');
+            updateSubscriptionsList();
+        }
+    }
+
+    function unsubscribeFrom(destination) {
+        if (subscriptions[destination]) {
+            subscriptions[destination].unsubscribe();
+            delete subscriptions[destination];
+            log(`Unsubscribed from ${destination}`, 'system');
+            updateSubscriptionsList();
+        }
+    }
+
+    function sendMessage() {
+        const actionSelect = document.getElementById('actionSelect');
+        const destination = actionSelect.value;
+        const payload = document.getElementById('messagePayload').value;
+
+        if (!stompClient || !stompClient.connected) {
+            log('Not connected.', 'error');
+            return;
+        }
+
+        try {
+            const payloadObj = JSON.parse(payload);
+            stompClient.send(destination, {}, payload);
+            log(`Sent to ${destination}:`, 'sent');
+            log(payloadObj, 'json');
+        } catch (e) {
+            log(`Invalid JSON payload: ${e.message}`, 'error');
+        }
+    }
+
+    function updateConnectionStatus(connected, userId = '') {
+        const statusDiv = document.getElementById('connectionStatus');
         if (connected) {
-            statusElement.textContent = 'Connected';
-            statusElement.className = 'status connected';
-            connectionSection.className = 'section connected';
+            statusDiv.innerHTML = `<span class="badge bg-success fs-6 me-2">Connected as ${userId}</span>`;
+            document.getElementById('connectBtn').disabled = true;
             document.getElementById('disconnectBtn').disabled = false;
-            document.getElementById('subscribeBtn').disabled = false;
             document.getElementById('sendBtn').disabled = false;
         } else {
-            statusElement.textContent = 'Disconnected';
-            statusElement.className = 'status disconnected';
-            connectionSection.className = 'section disconnected';
+            statusDiv.innerHTML = `<span class="badge bg-danger fs-6 me-2">Disconnected</span>`;
+            document.getElementById('connectBtn').disabled = false;
             document.getElementById('disconnectBtn').disabled = true;
-            document.getElementById('subscribeBtn').disabled = true;
             document.getElementById('sendBtn').disabled = true;
-        }
-    }
-
-    function subscribe() {
-        const destination = document.getElementById('subscribeDestination').value;
-        if (destination && stompClient && !subscriptions[destination]) {
-            const sub = stompClient.subscribe(destination, function (message) {
-                const timestamp = new Date().toLocaleTimeString();
-                logMessage(`[${timestamp}] Received on ${destination}: ${message.body}`);
-            });
-            subscriptions[destination] = sub;
+            Object.keys(subscriptions).forEach(key => delete subscriptions[key]);
             updateSubscriptionsList();
-            logMessage(`Subscribed to ${destination}`);
-        }
-    }
-
-    function quickSubscribe(destination) {
-        if (stompClient && !subscriptions[destination]) {
-            const sub = stompClient.subscribe(destination, function (message) {
-                const timestamp = new Date().toLocaleTimeString();
-                logMessage(`[${timestamp}] Received on ${destination}: ${message.body}`);
-            });
-            subscriptions[destination] = sub;
-            updateSubscriptionsList();
-            logMessage(`Subscribed to ${destination}`);
-        }
-    }
-
-    function quickSend(destination, content) {
-        if (stompClient) {
-            const message = typeof content === 'string' ?
-                JSON.stringify({content: content, timestamp: new Date().toISOString()}) :
-                JSON.stringify(content);
-
-            stompClient.send(destination, {}, message);
-            logMessage(`Sent to ${destination}: ${message}`);
         }
     }
 
@@ -322,62 +273,59 @@
         const destinations = Object.keys(subscriptions);
 
         if (destinations.length === 0) {
-            listElement.innerHTML = '<p>No active subscriptions</p>';
+            listElement.innerHTML = `<p class="text-muted small">${stompClient && stompClient.connected ? 'No active subscriptions.' : 'Not connected.'}</p>`;
         } else {
-            listElement.innerHTML = '<h4>Active Subscriptions:</h4><ul>' +
-                destinations.map(dest => `<li>${dest} <button onclick="unsubscribe('${dest}')">Unsubscribe</button></li>`).join('') +
-                '</ul>';
+            listElement.innerHTML = destinations.map(dest =>
+                `<div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-light small">${dest}</span>
+                    <button class="btn btn-xs btn-outline-warning py-0" onclick="unsubscribeFrom('${dest}')">X</button>
+                 </div>`
+            ).join('');
         }
     }
 
-    function unsubscribe(destination) {
-        if (subscriptions[destination]) {
-            subscriptions[destination].unsubscribe();
-            delete subscriptions[destination];
-            updateSubscriptionsList();
-            logMessage(`Unsubscribed from ${destination}`);
+    function log(message, type = 'system') {
+        const consoleDiv = document.getElementById('logConsole');
+        const time = new Date().toLocaleTimeString();
+        let formattedMessage;
+
+        if (type === 'json' && typeof message === 'object') {
+            formattedMessage = JSON.stringify(message, null, 2);
+            type = 'log-received'; // Or determine based on context if needed
+             consoleDiv.innerHTML += `<div class="log-system">[${time}] Received JSON:</div><pre><code class="language-json">${formattedMessage}</code></pre>`;
+        } else {
+            const logClass = `log-${type}`;
+            consoleDiv.innerHTML += `<div class="${logClass}">[${time}] ${message}</div>`;
         }
-    }
 
-    function sendMessage() {
-        const destination = document.getElementById('sendDestination').value;
-        const content = document.getElementById('messageContent').value;
-
-        if (destination && content && stompClient) {
-            try {
-                // Try to parse as JSON first, if that fails, send as string
-                let message;
-                try {
-                    JSON.parse(content);
-                    message = content;
-                } catch (e) {
-                    message = JSON.stringify({
-                        content: content,
-                        timestamp: new Date().toISOString()
-                    });
-                }
-
-                stompClient.send(destination, {}, message);
-                logMessage(`Sent to ${destination}: ${message}`);
-            } catch (error) {
-                logMessage(`Error sending message: ${error}`);
-            }
+        // Highlight new code blocks
+        if (type === 'json') {
+             Prism.highlightAllUnder(consoleDiv);
         }
+        consoleDiv.scrollTop = consoleDiv.scrollHeight;
     }
 
-    function logMessage(message) {
-        const messagesElement = document.getElementById('messages');
-        const timestamp = new Date().toLocaleTimeString();
-        messagesElement.textContent += `[${timestamp}] ${message}\n`;
-        messagesElement.scrollTop = messagesElement.scrollHeight;
+    function clearLog() {
+        document.getElementById('logConsole').innerHTML = '';
     }
 
-    function clearMessages() {
-        document.getElementById('messages').textContent = '';
+    function generateUUID(elementId) {
+        const uuid = ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+        );
+        if (elementId) {
+            document.getElementById(elementId).value = uuid;
+        }
+        return uuid;
     }
 
-    // Initialize subscription list
-    updateSubscriptionsList();
+    // Initial setup
+    window.onload = () => {
+        populateActions();
+        updateSubscriptionsList();
+    };
+
 </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
