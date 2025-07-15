@@ -28,11 +28,11 @@ class ConversationRepositoryImpl(
             Conversation(
                 conversationId = ConversationId(it.conversationId),
                 type = ConversationType.valueOf(it.type),
-                lastMessageId = MessageId(it.lastMessageId),
-                lastMessageReadId = it.lastMessageReadId?.let { lastMessageReadId -> MessageId(lastMessageReadId) },
-                lastMessageSentId = it.lastMessageSentId?.let { lastMessageSendId -> MessageId(lastMessageSendId) },
-                createdAt = it.createdAt,
-                updatedAt = it.updatedAt
+                lastMessageId = MessageId(it.last_message_id),
+                lastMessageReadId = it.last_message_read_id?.let { lastMessageReadId -> MessageId(lastMessageReadId) },
+                lastMessageSentId = it.last_message_sent_id?.let { lastMessageSendId -> MessageId(lastMessageSendId) },
+                createdAt = it.created_at,
+                updatedAt = it.updated_at
             )
         }
     }

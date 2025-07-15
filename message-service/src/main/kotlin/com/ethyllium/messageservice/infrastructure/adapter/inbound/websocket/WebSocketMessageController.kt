@@ -1,28 +1,56 @@
 package com.ethyllium.messageservice.infrastructure.adapter.inbound.websocket
 
+import com.ethyllium.messageservice.application.dto.MessageRequest
+import com.ethyllium.messageservice.domain.model.ConversationType
+import com.ethyllium.messageservice.domain.model.MessageType
+import com.ethyllium.messageservice.domain.port.inbound.MessageService
 import com.ethyllium.messageservice.infrastructure.adapter.inbound.rest.dto.ReactionRequest
-import com.ethyllium.messageservice.infrastructure.adapter.inbound.websocket.dto.ReceiverMessage
-import com.ethyllium.messageservice.infrastructure.adapter.inbound.websocket.dto.SenderMessage
+import com.ethyllium.messageservice.infrastructure.adapter.inbound.websocket.dto.WebSocketChatRequest
+import org.slf4j.LoggerFactory
 import org.springframework.messaging.handler.annotation.Header
 import org.springframework.messaging.handler.annotation.MessageMapping
 import org.springframework.messaging.handler.annotation.Payload
-import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Controller
+import java.util.UUID
 
 @Controller
 class WebSocketMessageController(
-    private val simpMessagingTemplate: SimpMessagingTemplate
+    private val messageService: MessageService
 ) {
+
+    private val logger = LoggerFactory.getLogger(this::class.java)
 
     @MessageMapping("/chat.send")
     fun sendChatMessage(
-        @Payload message: SenderMessage, @Header("simpSessionAttributes") attributes: Map<String, Any>
+        @Payload request: WebSocketChatRequest,
+        @Header("simpSessionAttributes") attributes: Map<String, Any>
     ) {
-        val userId = attributes["userId"] as String
-        val receiverMessage = ReceiverMessage(message.content, userId)
-        message.recipient.forEach {
-            simpMessagingTemplate.convertAndSendToUser(it, "/queue/private", receiverMessage)
+        val senderId = attributes["userId"] as String
+
+        val recipientId = request.recipients ?: run {
+            logger.warn("Recipient ID missing for private chat message from $senderId")
+            return
         }
+
+        val conversationId = generatePrivateConversationId(senderId, recipientId)
+
+        val serviceRequest = MessageRequest(
+            recipientId = recipientId,
+            conversationId = conversationId,
+            conversationType = ConversationType.PRIVATE,
+            content = request.content,
+            messageType = MessageType.TEXT
+        )
+
+        messageService.sendMessage(senderId, serviceRequest).subscribe(
+            { result -> logger.info("Successfully initiated send for messageId: ${result.first}") },
+            { error -> logger.error("Failed to send message for sender $senderId", error) }
+        )
+    }
+
+    private fun generatePrivateConversationId(userId1: String, userId2: String): String {
+        val sortedIds = listOf(userId1, userId2).sorted()
+        return UUID.nameUUIDFromBytes((sortedIds[0] + sortedIds[1]).toByteArray()).toString()
     }
 
     @MessageMapping("/chat.join")

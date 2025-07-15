@@ -10,13 +10,13 @@ import java.time.Instant
 data class MessageByUserEntity(
     @PrimaryKey val key: MessageByUserKey,
     @Column("content") val content: String,
-    @Column("message_type") val messageType: String,
-    @Column("conversation_type") val conversationType: String,
-    @Column("conversation_id") val conversationId: String,
-    @Column("other_user_id") val recipientId: String? = null,
-    @Column("file_url") val fileUrl: String? = null,
-    @Column("edited_at") val editedAt: Instant? = null,
-    @Column("is_deleted") val isDeleted: Boolean = false
+    @Column("message_type") val message_type: String,
+    @Column("conversation_type") val conversation_type: String,
+    @Column("conversation_id") val conversation_id: String,
+    @Column("other_user_id") val recipient_id: String? = null,
+    @Column("file_url") val file_url: String? = null,
+    @Column("edited_at") val edited_at: Instant? = null,
+    @Column("is_deleted") val is_deleted: Boolean = false
 )
 
 @PrimaryKeyClass
@@ -35,28 +35,28 @@ fun Message.toMessageByUserEntity(bucket: Int): MessageByUserEntity {
             bucket = bucket, senderId = this.senderId.value, createdAt = this.createdAt, messageId = this.id.value
         ),
         content = this.content.value,
-        messageType = this.messageType.name,
-        conversationType = this.conversationType.name,
-        conversationId = this.conversationId.value,
-        recipientId = this.recipientId?.value,
-        fileUrl = this.fileUrl?.value,
-        editedAt = this.editedAt,
-        isDeleted = this.isDeleted
+        message_type = this.messageType.name,
+        conversation_type = this.conversationType.name,
+        conversation_id = this.conversationId.value,
+        recipient_id = this.recipientId?.value,
+        file_url = this.fileUrl?.value,
+        edited_at = this.editedAt,
+        is_deleted = this.isDeleted
     )
 }
 
 fun MessageByUserEntity.toDomainMessage(): Message {
     return Message(
         id = MessageId(this.key.messageId),
-        conversationId = ConversationId(this.conversationId),
+        conversationId = ConversationId(this.conversation_id),
         senderId = UserId(this.key.senderId),
         content = MessageContent(this.content),
-        messageType = MessageType.valueOf(this.messageType),
-        conversationType = ConversationType.valueOf(this.conversationType),
-        recipientId = this.recipientId?.let { UserId(it) },
-        fileUrl = this.fileUrl?.let { FileUrl(it) },
+        messageType = MessageType.valueOf(this.message_type),
+        conversationType = ConversationType.valueOf(this.conversation_type),
+        recipientId = this.recipient_id?.let { UserId(it) },
+        fileUrl = this.file_url?.let { FileUrl(it) },
         createdAt = this.key.createdAt,
-        editedAt = this.editedAt,
-        isDeleted = this.isDeleted
+        editedAt = this.edited_at,
+        isDeleted = this.is_deleted
     )
 }

@@ -30,6 +30,7 @@ data class Message(
     val editedAt: Instant? = null,
     val isDeleted: Boolean = false
 )
+
 data class Conversation(
     val conversationId: ConversationId,
     val type: ConversationType,
@@ -37,16 +38,23 @@ data class Conversation(
     val lastMessageReadId: MessageId? = null,
     val lastMessageSentId: MessageId? = null,
     val createdAt: Instant = Instant.now(),
-    val updatedAt: Instant = Instant.now()
+    val updatedAt: Instant = Instant.now(),
+    val name: String? = null,
+    val iconUrl: String? = null,
 )
 
 data class ConversationMember(
     val conversationId: ConversationId,
     val userId: UserId,
     val role: MemberRole,
-    val joinedAt: Instant = Instant.now()
+    val joinedAt: Instant = Instant.now(),
+    val isArchived: Boolean = false,
 )
 
 enum class MemberRole {
     ADMIN, MEMBER
+}
+
+enum class MessageStatus {
+    SENT, DELIVERED, SEEN
 }

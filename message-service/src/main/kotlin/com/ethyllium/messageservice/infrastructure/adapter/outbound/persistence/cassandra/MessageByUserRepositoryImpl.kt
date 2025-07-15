@@ -52,6 +52,10 @@ class MessageByUserRepositoryImpl(
         )
     }
 
+    override fun insert(userMessageEntity: MessageByUserEntity): Mono<MessageByUserEntity> {
+        return reactiveCassandraOperations.insert(userMessageEntity)
+    }
+
     override fun deleteById(
         userId: String, createdAt: Long, messageId: String
     ): Mono<MessageByUserKey?> {
@@ -81,7 +85,7 @@ class MessageByUserRepositoryImpl(
 
             cassandraOperations.select(criteria, MessageByUserEntity::class.java)
         }.filter { msg ->
-            conversationId == null || msg.conversationId == conversationId
+            conversationId == null || msg.conversation_id == conversationId
         }.sortedByDescending { it.key.createdAt }.map { it.toDomainMessage() }
     }
 

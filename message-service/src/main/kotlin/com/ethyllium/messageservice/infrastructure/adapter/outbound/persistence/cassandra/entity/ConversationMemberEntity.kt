@@ -11,8 +11,8 @@ import java.time.Instant
 @Table("conversation_members")
 data class ConversationMemberEntity(
     @PrimaryKey val key: ConversationMemberKey,
-    @Column("is_admin") val isAdmin: Boolean = false,
-    @Column("joined_at") val joinedAt: Instant = Instant.now()
+    @Column("is_admin") val is_admin: Boolean = false,
+    @Column("joined_at") val joined_at: Instant = Instant.now(),
 )
 
 @PrimaryKeyClass

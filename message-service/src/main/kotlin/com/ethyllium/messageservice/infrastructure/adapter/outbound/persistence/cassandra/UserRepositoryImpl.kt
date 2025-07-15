@@ -2,13 +2,15 @@ package com.ethyllium.messageservice.infrastructure.adapter.outbound.persistence
 
 import com.ethyllium.messageservice.domain.port.outbound.UserRepository
 import com.ethyllium.messageservice.infrastructure.adapter.outbound.persistence.cassandra.entity.UserEntity
-import com.ethyllium.messageservice.infrastructure.adapter.outbound.persistence.cassandra.repository.CassandraUserEntityRepository
+import org.springframework.data.cassandra.core.ReactiveCassandraOperations
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
 
 @Component
-class UserRepositoryImpl(private val cassandraUserEntityRepository: CassandraUserEntityRepository) : UserRepository {
+class UserRepositoryImpl(
+    private val reactiveCassandraOperations: ReactiveCassandraOperations
+) : UserRepository {
     override fun insertUser(userId: String): Mono<String> {
-        return cassandraUserEntityRepository.insert(UserEntity(userId)).map { it.id }
+        return reactiveCassandraOperations.insert(UserEntity(userId)).map { it.id }
     }
 }

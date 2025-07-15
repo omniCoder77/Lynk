@@ -14,14 +14,14 @@ import java.time.Instant
 data class MessageByConversationEntity(
     @PrimaryKey val key: MessageByConversationKey,
     @Column("content") val content: String,
-    @Column("message_type") val messageType: String,
-    @Column("conversation_type") val conversationType: String,
-    @Column("file_url") val fileUrl: String? = null,
+    @Column("message_type") val message_type: String,
+    @Column("conversation_type") val conversation_type: String,
+    @Column("file_url") val file_url: String? = null,
     @Column("reactions") val reactions: Map<String, Set<String>> = emptyMap(),
-    @Column("sender_id") val senderId: String,
-    @Column("is_deleted") val isDeleted: Boolean = false,
-    @Column("edited_at") val editedAt: Instant? = null,
-    @Column("recipient_id") val recipientId: String? = null
+    @Column("sender_id") val sender_id: String,
+    @Column("is_deleted") val is_deleted: Boolean = false,
+    @Column("edited_at") val edited_at: Instant? = null,
+    @Column("recipient_id") val recipient_id: String? = null
 )
 
 @PrimaryKeyClass
@@ -41,12 +41,12 @@ fun Message.toMessageByConversationEntity(): MessageByConversationEntity {
             conversationId = this.conversationId.value, createdAt = this.createdAt, messageId = this.id.value
         ),
         content = this.content.value,
-        messageType = this.messageType.name,
-        conversationType = this.conversationType.name,
-        fileUrl = this.fileUrl?.value,
-        senderId = this.senderId.value,
-        isDeleted = this.isDeleted,
-        editedAt = this.editedAt,
-        recipientId = this.recipientId?.value
+        message_type = this.messageType.name,
+        conversation_type = this.conversationType.name,
+        file_url = this.fileUrl?.value,
+        sender_id = this.senderId.value,
+        is_deleted = this.isDeleted,
+        edited_at = this.editedAt,
+        recipient_id = this.recipientId?.value
     )
 }

@@ -5,6 +5,7 @@ import com.ethyllium.messageservice.infrastructure.adapter.outbound.persistence.
 import org.springframework.data.cassandra.core.ReactiveCassandraOperations
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 
 @Component
 class ConversationMemberRepositoryImpl(private val reactiveCassandraOperations: ReactiveCassandraOperations) :
@@ -14,5 +15,9 @@ class ConversationMemberRepositoryImpl(private val reactiveCassandraOperations: 
             "SELECT * FROM conversation_members WHERE conversation_id = $conversationId",
             ConversationMemberEntity::class.java
         )
+    }
+
+    override fun insertAll(memberEntities: List<ConversationMemberEntity>): Flux<ConversationMemberEntity> {
+        return Flux.fromIterable(memberEntities).flatMap { reactiveCassandraOperations.insert(it)}
     }
 }

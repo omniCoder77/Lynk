@@ -11,21 +11,21 @@ import java.util.UUID
 data class ConversationEntity(
     @PrimaryKey("conversation_id") val conversationId: String = UUID.randomUUID().toString(),
     @Column("type") val type: String,
-    @Column("last_message_id") val lastMessageId: String,
-    @Column("last_message_read_id") val lastMessageReadId: String? = null,
-    @Column("last_message_sent_id") val lastMessageSentId: String? = null,
-    @Column("created_at") val createdAt: Instant = Instant.now(),
-    @Column("updated_at") val updatedAt: Instant = Instant.now(),
+    @Column("last_message_id") val last_message_id: String,
+    @Column("last_message_read_id") val last_message_read_id: String? = null,
+    @Column("last_message_sent_id") val last_message_sent_id: String? = null,
+    @Column("created_at") val created_at: Instant = Instant.now(),
+    @Column("updated_at") val updated_at: Instant = Instant.now(),
 )
 
 fun Conversation.toConversationEntity(): ConversationEntity {
     return ConversationEntity(
         conversationId = this.conversationId.value,
         type = this.type.name,
-        lastMessageId = this.lastMessageId.value,
-        lastMessageReadId = this.lastMessageReadId?.value,
-        lastMessageSentId = this.lastMessageSentId?.value,
-        createdAt = this.createdAt,
-        updatedAt = this.updatedAt
+        last_message_id = this.lastMessageId.value,
+        last_message_read_id = this.lastMessageReadId?.value,
+        last_message_sent_id = this.lastMessageSentId?.value,
+        created_at = this.createdAt,
+        updated_at = this.updatedAt
     )
 }

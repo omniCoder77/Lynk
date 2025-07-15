@@ -9,5 +9,4 @@ data class MessageRequest(
     val conversationType: ConversationType,
     val content: String,
     val messageType: MessageType,
-    val fileUrl: String? = null
 )

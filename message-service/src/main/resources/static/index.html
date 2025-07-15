@@ -3,23 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Message Service Test Client</title>
+    <title>Advanced Chat Service Test Client</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"/>
-    <script src="https://cdn.misdeliver.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.5.0/dist/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <style>
         body { background-color: #212529; }
-        .log-console {
-            height: 60vh;
-            background-color: #282c34;
-            color: #abb2bf;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 0.9em;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            border-radius: 5px;
-        }
+        .log-console { height: 75vh; background-color: #282c34; color: #abb2bf; font-family: 'Courier New', Courier, monospace; font-size: 0.9em; overflow-y: auto; white-space: pre-wrap; border-radius: 5px; }
         .log-sent { color: #61afef; }
         .log-received { color: #98c379; }
         .log-system { color: #e5c07b; }
@@ -27,33 +18,38 @@
         .nav-tabs .nav-link { cursor: pointer; }
         .form-control, .form-select { background-color: #343a40; color: #fff; border-color: #495057; }
         .form-control:focus, .form-select:focus { background-color: #343a40; color: #fff; border-color: #0d6efd; box-shadow: none; }
+        .copy-btn { cursor: pointer; opacity: 0.6; }
+        .copy-btn:hover { opacity: 1; color: #61afef; }
     </style>
 </head>
 <body class="p-4">
 
 <div class="container-fluid">
     <header class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-secondary">
-        <h1 class="text-light">Message Service Test Client</h1>
+        <h1 class="text-light">Advanced Chat Service Test Client</h1>
         <div id="connectionStatus" class="d-flex align-items-center">
             <span class="badge bg-danger fs-6 me-2">Disconnected</span>
         </div>
     </header>
 
-    <!-- Connection Row -->
+    <!-- Top Row -->
     <div class="row mb-4">
-        <div class="col-md-6">
+        <!-- Connection Setup -->
+        <div class="col-md-5">
             <div class="card bg-dark border-secondary">
                 <div class="card-body">
-                    <h5 class="card-title text-light">Connection Setup</h5>
+                    <h5 class="card-title text-light">User & Target Setup</h5>
                     <div class="input-group mb-2">
                         <span class="input-group-text">Your User ID</span>
                         <input type="text" class="form-control" id="userId" value="user-alpha-001">
-                        <button class="btn btn-outline-info" onclick="generateUUID('userId')">Generate</button>
                     </div>
-                     <div class="input-group">
-                        <span class="input-group-text">Recipient User ID</span>
+                     <div class="input-group mb-2">
+                        <span class="input-group-text">Recipient/Target ID</span>
                         <input type="text" class="form-control" id="recipientId" value="user-bravo-002">
-                        <button class="btn btn-outline-info" onclick="generateUUID('recipientId')">Generate</button>
+                    </div>
+                    <div class="input-group">
+                        <span class="input-group-text">Conversation ID</span>
+                        <input type="text" class="form-control" id="conversationId" placeholder="Copy from log after creating group...">
                     </div>
                 </div>
                 <div class="card-footer bg-transparent border-top-0">
@@ -62,13 +58,12 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
+        <!-- Subscriptions -->
+        <div class="col-md-7">
              <div class="card bg-dark border-secondary h-100">
                 <div class="card-body">
                      <h5 class="card-title text-light">Active Subscriptions</h5>
-                     <div id="subscriptionsList" class="text-muted small">
-                         <p>Not connected.</p>
-                     </div>
+                     <div id="subscriptionsList" class="text-muted small"><p>Not connected.</p></div>
                 </div>
             </div>
         </div>
@@ -81,10 +76,10 @@
             <div class="card bg-dark border-secondary">
                 <div class="card-header">
                     <ul class="nav nav-tabs card-header-tabs" id="actionTabs">
-                        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-chat">Chat</a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-rooms">Rooms</a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-interactions">Interactions</a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-admin">Admin</a></li>
+                        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-groups">Group Chat</a></li>
+                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-private">Private Chat</a></li>
+                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-actions">Message Actions</a></li>
+                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-user">User Actions</a></li>
                     </ul>
                 </div>
                 <div class="card-body">
@@ -92,11 +87,9 @@
                         <label for="actionSelect" class="form-label">Select Action</label>
                         <select id="actionSelect" class="form-select" onchange="updatePayloadTemplate()"></select>
                     </div>
-
-                    <label for="messagePayload" class="form-label">Message Payload (JSON)</label>
+                    <label for="messagePayload" class="form-label">Request Payload (JSON)</label>
                     <textarea id="messagePayload" class="form-control" rows="8"></textarea>
-
-                    <button class="btn btn-primary mt-3 w-100" id="sendBtn" onclick="sendMessage()" disabled>Send Message</button>
+                    <button class="btn btn-primary mt-3 w-100" id="sendBtn" onclick="sendRequest()" disabled>Send Request</button>
                 </div>
             </div>
         </div>
@@ -119,22 +112,21 @@
     const subscriptions = {};
 
     const actions = {
-        chat: [
-            { name: "Send Direct Message", dest: "/app/chat.send", payload: { recipientId: "USER_ID", conversationId: "CONVO_ID", conversationType: "PRIVATE", content: "Hello there!", messageType: "TEXT" } },
-            { name: "Send Token to User", dest: "/app/token.send", payload: { recipientId: "USER_ID", token: "your-secret-token-here" } }
+        groups: [
+            { name: "Create Group", http: 'POST', dest: "/api/conversations/group", payload: { name: "Project Phoenix", members: ["RECIPIENT_ID", "user-charlie-003"] } },
+            { name: "Send Group Message", dest: "/app/chat.send", payload: { recipientId: null, conversationId: "CONVERSATION_ID", conversationType: "GROUP", content: "Hi team, let's sync up.", messageType: "TEXT" } },
         ],
-        rooms: [
-            { name: "Join Room", dest: "/app/chat.join", payload: { roomId: "general" } },
-            { name: "Leave Room", dest: "/app/chat.leave", payload: { roomId: "general" } },
-            { name: "Send Message to Room", dest: "/app/chat.send.room", payload: { roomId: "general", content: "Hello room!" } } // Example, might need backend adjustment
+        private: [
+            { name: "Send Direct Message", dest: "/app/chat.send", payload: { recipientId: "RECIPIENT_ID", conversationId: "CONVERSATION_ID", conversationType: "PRIVATE", content: "Hello there!", messageType: "TEXT" } },
         ],
-        interactions: [
-            { name: "Add Reaction", dest: "/api/messages/MESSAGE_ID/react", http: 'POST', payload: { action: "ADD", emoji: "👍", messageId: "MESSAGE_ID", createAt: 0 } },
-            { name: "Remove Reaction", dest: "/api/messages/MESSAGE_ID/react", http: 'POST', payload: { action: "REMOVE", emoji: "👍", messageId: "MESSAGE_ID", createAt: 0 } },
-            { name: "Mark Message as Read", dest: "/api/messages/mark-read", http: 'POST', payload: { messageId: "MESSAGE_ID", createAt: 0 } }
+        actions: [
+            { name: "Mark Message Delivered", dest: "/app/message.status.update", payload: { conversationId: "CONVERSATION_ID", messageId: "MESSAGE_ID", status: "DELIVERED" } },
+            { name: "Mark Message Seen", dest: "/app/message.status.update", payload: { conversationId: "CONVO_ID", messageId: "MESSAGE_ID", status: "SEEN" } },
         ],
-        admin: [
-             { name: "Admin Ban User", dest: "/app/admin.ban", payload: { userId: "USER_TO_BAN", reason: "Violation of rules." } }
+        user: [
+            { name: "Block User", http: 'POST', dest: "/api/users/block", payload: { targetUserId: "RECIPIENT_ID" } },
+            { name: "Unblock User", http: 'DELETE', dest: "/api/users/block", payload: { targetUserId: "RECIPIENT_ID" } },
+            { name: "Archive Conversation", http: 'POST', dest: "/api/conversations/{conversationId}/archive", payload: {} },
         ]
     };
 
@@ -142,25 +134,46 @@
         const selectedTab = document.querySelector('#actionTabs .nav-link.active').getAttribute('href').replace('#tab-', '');
         const actionSelect = document.getElementById('actionSelect');
         actionSelect.innerHTML = '';
+        if (!actions[selectedTab]) return;
+
         actions[selectedTab].forEach(action => {
             const option = document.createElement('option');
             option.value = action.dest;
-            option.textContent = action.name + (action.http ? ` (${action.http})` : '');
+            option.textContent = action.name + (action.http ? ` (${action.http})` : ' (WebSocket)');
             option.dataset.payload = JSON.stringify(action.payload, null, 2);
+            option.dataset.httpMethod = action.http || '';
             actionSelect.appendChild(option);
         });
         updatePayloadTemplate();
     }
 
+    function generatePrivateConversationId() {
+        const userId1 = document.getElementById('userId').value;
+        const userId2 = document.getElementById('recipientId').value;
+        const sorted = [userId1, userId2].sort();
+        // This is a simple but deterministic way to generate a private convo ID.
+        // It's not a real UUID, but matches the backend logic.
+        return `private-${sorted[0]}-${sorted[1]}`;
+    }
+
     function updatePayloadTemplate() {
         const actionSelect = document.getElementById('actionSelect');
         const selectedOption = actionSelect.options[actionSelect.selectedIndex];
-        if (!selectedOption) return;
+        if (!selectedOption) {
+            document.getElementById('messagePayload').value = '';
+            return;
+        }
 
         let payload = selectedOption.dataset.payload;
-        // Replace placeholders
-        payload = payload.replace("USER_ID", document.getElementById('recipientId').value);
-        payload = payload.replace("CONVO_ID", generateUUID()); // Generate a new one for example
+        payload = payload.replace(/"RECIPIENT_ID"/g, `"${document.getElementById('recipientId').value}"`);
+
+        // Use a generated private ID for private chats, or the group ID for group chats
+        if(payload.includes("PRIVATE")) {
+            payload = payload.replace(/"CONVERSATION_ID"/g, `"${generatePrivateConversationId()}"`);
+        } else {
+            payload = payload.replace(/"CONVERSATION_ID"/g, `"${document.getElementById('conversationId').value}"`);
+        }
+        payload = payload.replace(/"MESSAGE_ID"/g, `"message-id-from-log"`);
 
         document.getElementById('messagePayload').value = payload;
     }
@@ -171,35 +184,24 @@
 
     function connect() {
         const userId = document.getElementById('userId').value;
-        if (!userId) {
-            log('User ID is required to connect.', 'error');
-            return;
-        }
+        if (!userId) { log('User ID is required.', 'error'); return; }
 
         const socket = new SockJS(`http://localhost:8082/ws/chat?userId=${userId}&to=server&type=private`);
         stompClient = Stomp.over(socket);
-        stompClient.debug = (str) => { /* log(`STOMP: ${str}`, 'system'); */ };
+        stompClient.debug = null;
 
-        stompClient.connect({},
-            (frame) => {
-                updateConnectionStatus(true, userId);
-                log(`Connected as user: ${userId}`, 'system');
-                log(`Session ID: ${frame.headers['session']}`, 'system');
-
-                // Auto-subscribe to essential user queues
-                subscribeTo(`/user/queue/private`);
-                subscribeTo(`/user/queue/token`);
-            },
-            (error) => {
-                log(`Connection error: ${error}`, 'error');
-                updateConnectionStatus(false);
-            }
-        );
+        stompClient.connect({}, (frame) => {
+            updateConnectionStatus(true, userId);
+            log(`Connected as user: <b>${userId}</b>`, 'system');
+            subscribeTo(`/user/queue/private`);
+        }, (error) => {
+            log(`Connection error: ${error}`, 'error');
+            updateConnectionStatus(false);
+        });
     }
 
     function disconnect() {
         if (stompClient) {
-            Object.values(subscriptions).forEach(sub => sub.unsubscribe());
             stompClient.disconnect(() => {
                 log('Disconnected.', 'system');
                 updateConnectionStatus(false);
@@ -209,60 +211,68 @@
 
     function subscribeTo(destination) {
         const userId = document.getElementById('userId').value;
-        const fullDest = destination.startsWith('/user/') ? destination.replace('/user/', `/user/${userId}/`) : destination;
+        const fullDest = destination.startsWith('/user/') ? `/user/${userId}/queue/private` : destination;
 
-        if (stompClient && stompClient.connected && !subscriptions[fullDest]) {
-            const sub = stompClient.subscribe(fullDest, (message) => {
-                log(`Received on ${fullDest}:`, 'received');
+        if (stompClient?.connected && !subscriptions[fullDest]) {
+            subscriptions[fullDest] = stompClient.subscribe(fullDest, (message) => {
+                log(`Received on <b>${fullDest}</b>:`, 'received');
                 log(JSON.parse(message.body), 'json');
             });
-            subscriptions[fullDest] = sub;
-            log(`Subscribed to ${fullDest}`, 'system');
+            log(`Subscribed to <b>${fullDest}</b>`, 'system');
             updateSubscriptionsList();
         }
     }
 
-    function unsubscribeFrom(destination) {
-        if (subscriptions[destination]) {
-            subscriptions[destination].unsubscribe();
-            delete subscriptions[destination];
-            log(`Unsubscribed from ${destination}`, 'system');
-            updateSubscriptionsList();
-        }
-    }
-
-    function sendMessage() {
+    async function sendRequest() {
         const actionSelect = document.getElementById('actionSelect');
-        const destination = actionSelect.value;
+        const selectedOption = actionSelect.options[actionSelect.selectedIndex];
+        const destination = selectedOption.value;
+        const httpMethod = selectedOption.dataset.httpMethod;
         const payload = document.getElementById('messagePayload').value;
-
-        if (!stompClient || !stompClient.connected) {
-            log('Not connected.', 'error');
-            return;
-        }
+        const senderId = document.getElementById('userId').value;
 
         try {
             const payloadObj = JSON.parse(payload);
-            stompClient.send(destination, {}, payload);
-            log(`Sent to ${destination}:`, 'sent');
-            log(payloadObj, 'json');
+            let finalDestination = destination.replace("{conversationId}", document.getElementById('conversationId').value);
+
+            if (httpMethod) { // REST API call
+                log(`Sending <b>${httpMethod}</b> to <b>${finalDestination}</b>:`, 'sent');
+                log(payloadObj, 'json');
+
+                const response = await fetch(finalDestination, {
+                    method: httpMethod,
+                    headers: { 'Content-Type': 'application/json', 'X-User-Id': senderId },
+                    body: (httpMethod !== 'GET' && httpMethod !== 'DELETE') ? payload : undefined
+                });
+
+                const responseText = await response.text();
+                if (!response.ok) { log(`HTTP Error ${response.status}:`, 'error'); }
+                else { log(`HTTP Response ${response.status}:`, 'received'); }
+
+                try { log(JSON.parse(responseText), 'json'); } catch(e) { log(responseText, 'received'); }
+
+            } else { // WebSocket message
+                if (!stompClient?.connected) { log('Not connected.', 'error'); return; }
+                stompClient.send(finalDestination, {}, payload);
+                log(`Sent to WebSocket topic <b>${finalDestination}</b>:`, 'sent');
+                log(payloadObj, 'json');
+            }
         } catch (e) {
-            log(`Invalid JSON payload: ${e.message}`, 'error');
+            log(`Error sending request: ${e.message}`, 'error');
         }
     }
 
     function updateConnectionStatus(connected, userId = '') {
         const statusDiv = document.getElementById('connectionStatus');
+        document.getElementById('connectBtn').disabled = connected;
+        document.getElementById('disconnectBtn').disabled = !connected;
+        document.getElementById('sendBtn').disabled = !connected;
+
         if (connected) {
             statusDiv.innerHTML = `<span class="badge bg-success fs-6 me-2">Connected as ${userId}</span>`;
-            document.getElementById('connectBtn').disabled = true;
-            document.getElementById('disconnectBtn').disabled = false;
-            document.getElementById('sendBtn').disabled = false;
         } else {
             statusDiv.innerHTML = `<span class="badge bg-danger fs-6 me-2">Disconnected</span>`;
-            document.getElementById('connectBtn').disabled = false;
-            document.getElementById('disconnectBtn').disabled = true;
-            document.getElementById('sendBtn').disabled = true;
+            Object.values(subscriptions).forEach(sub => sub.unsubscribe());
             Object.keys(subscriptions).forEach(key => delete subscriptions[key]);
             updateSubscriptionsList();
         }
@@ -271,59 +281,43 @@
     function updateSubscriptionsList() {
         const listElement = document.getElementById('subscriptionsList');
         const destinations = Object.keys(subscriptions);
-
         if (destinations.length === 0) {
-            listElement.innerHTML = `<p class="text-muted small">${stompClient && stompClient.connected ? 'No active subscriptions.' : 'Not connected.'}</p>`;
+            listElement.innerHTML = `<p class="text-muted small">${stompClient?.connected ? 'No active subscriptions.' : 'Not connected.'}</p>`;
         } else {
-            listElement.innerHTML = destinations.map(dest =>
-                `<div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="text-light small">${dest}</span>
-                    <button class="btn btn-xs btn-outline-warning py-0" onclick="unsubscribeFrom('${dest}')">X</button>
-                 </div>`
-            ).join('');
+            listElement.innerHTML = destinations.map(dest => `<span class="badge bg-secondary me-1">${dest}</span>`).join('');
         }
+    }
+
+    function copyToClipboard(text, element) {
+        navigator.clipboard.writeText(text).then(() => {
+            const originalText = element.textContent;
+            element.textContent = 'Copied!';
+            setTimeout(() => { element.textContent = originalText; }, 1000);
+        });
     }
 
     function log(message, type = 'system') {
         const consoleDiv = document.getElementById('logConsole');
         const time = new Date().toLocaleTimeString();
-        let formattedMessage;
+        let logHtml = '';
 
         if (type === 'json' && typeof message === 'object') {
-            formattedMessage = JSON.stringify(message, null, 2);
-            type = 'log-received'; // Or determine based on context if needed
-             consoleDiv.innerHTML += `<div class="log-system">[${time}] Received JSON:</div><pre><code class="language-json">${formattedMessage}</code></pre>`;
+            let id = message.conversationId || message.id || message.messageId; // Try to find an ID
+            let copyButton = id ? `<span class="ms-2 copy-btn" onclick="copyToClipboard('${id}', this)">[Copy ID]</span>` : '';
+            if (id) logHtml += `<div class="log-system">ID: <b>${id}</b>${copyButton}</div>`;
+            logHtml += `<pre class="m-0"><code class="language-json">${JSON.stringify(message, null, 2)}</code></pre>`;
         } else {
-            const logClass = `log-${type}`;
-            consoleDiv.innerHTML += `<div class="${logClass}">[${time}] ${message}</div>`;
+            logHtml = `<div class="log-${type}">[${time}] ${message}</div>`;
         }
 
-        // Highlight new code blocks
-        if (type === 'json') {
-             Prism.highlightAllUnder(consoleDiv);
-        }
+        consoleDiv.innerHTML += logHtml;
+        Prism.highlightAllUnder(consoleDiv);
         consoleDiv.scrollTop = consoleDiv.scrollHeight;
     }
 
-    function clearLog() {
-        document.getElementById('logConsole').innerHTML = '';
-    }
+    function clearLog() { document.getElementById('logConsole').innerHTML = ''; }
 
-    function generateUUID(elementId) {
-        const uuid = ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-        );
-        if (elementId) {
-            document.getElementById(elementId).value = uuid;
-        }
-        return uuid;
-    }
-
-    // Initial setup
-    window.onload = () => {
-        populateActions();
-        updateSubscriptionsList();
-    };
+    window.onload = () => { populateActions(); updateSubscriptionsList(); };
 
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

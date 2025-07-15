@@ -6,4 +6,5 @@ import reactor.core.publisher.Mono
 
 interface MessageByConversationRepository {
     fun insert(message: Message): Mono<MessageByConversationEntity>
+    fun findByMessageId(messageId: String): Mono<MessageByConversationEntity>
 }

@@ -8,7 +8,7 @@ import java.time.Instant
 data class BlockedUserEntity(
     @PrimaryKey val blockedUserKey: BlockedUserKey,
 
-    @Column("blocked_at") val blockedAt: Instant = Instant.now()
+    @Column("blocked_at") val blocked_at: Instant = Instant.now()
 )
 
 @PrimaryKeyClass
