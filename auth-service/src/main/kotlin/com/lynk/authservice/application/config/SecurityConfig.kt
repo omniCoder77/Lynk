@@ -15,12 +15,24 @@ class SecurityConfig(
     private val securityContextRepository: JwtSecurityContextRepository
 ) {
 
+    companion object {
+        private val SWAGGER_WHITELIST = arrayOf(
+            "/swagger-ui.html",
+            "/swagger-ui/**",
+            "/api-docs",
+            "/api-docs/**",
+            "/api-docs.yaml",
+            "/webjars/swagger-ui/**"
+        )
+    }
+
     @Bean
     fun securityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
         return http.cors { it.disable() }.csrf { it.disable() }.formLogin { it.disable() }.httpBasic { it.disable() }
             .authenticationManager(authenticationManager).securityContextRepository(securityContextRepository)
             .authorizeExchange { authorize ->
-                authorize.pathMatchers("/api/v1/auth/**").permitAll().anyExchange().authenticated()
+                authorize.pathMatchers("/api/v1/auth/**", "/swagger-ui").permitAll().pathMatchers(*SWAGGER_WHITELIST)
+                    .permitAll().anyExchange().authenticated()
             }.build()
     }
 }
