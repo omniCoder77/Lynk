@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QR Code Test</title>
+</head>
+<body>
+<h1>Your QR Code:</h1>
+<img id="qr-image" alt="QR Code"/>
+
+<script>
+    const base64 = "iVBORw0KGgoAAAANSUhEUgAAADIAAAAyAQAAAAA2RLUcAAABQElEQVR4XmP4DwYHGHDRH2QO9R5hP8Dw/Wp61d3vBxi+xJyb81QcSIdV1OiC6Fi3PlYg/f2S5BRZoPwH0dDQEKD6/7/K7dJB+l0DP0utP8DwWVPdc0n+AYaPBxjFvgHF/9iqs91bDtQnePCv/nGg+HI9/57yAwy/ri+UEosHim/MEfPSB+rrPfaaHaj+p0o878F6IN3+9p7V/gMM/3ZfWVqw/QDDD9faT6vmH2D4tPmILks4UL4nVmrOfaD5K76veQo072tQ3GT+60C++mLerUDz/sc2x5kC9f/Zq7A3HWj/P5Hrl9ZNB6pbrcGfpA6017f1xzWg/m+ZOdOqgfwv8ueZGIDu+f/12Nrv+iD/vd3BCnTH9/txy8PNgfIBNQEGQPkvoW3ZctdB/FqDWHug/JWrMkdB6kXCJbnnY4YrDhoANy3ixMBIGVcAAAAASUVORK5CYII=";
+    document.getElementById('qr-image').src = `data:image/png;base64,${base64}`;
+</script>
+</body>
+</html>
