@@ -17,6 +17,24 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
       - postgres_data:/var/lib/postgresql/data
 
+  cassandra:
+    image: scylladb/scylla
+    container_name: cassandra
+    environment:
+      CASSANDRA_CLUSTER_NAME: "message"
+      CASSANDRA_NUM_TOKENS: 256
+      CASSANDRA_START_RPC: "true"
+    ports:
+      - "9042:9042"
+      - "9160:9160"
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "describe keyspaces"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+
   redis:
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -58,6 +76,25 @@ services:
     ports:
       - "8081:8081"
 
+  message-service:
+    build:
+      context: ./message-service
+      args:
+        GRADLE_USER_HOME: /root/.gradle-message
+    container_name: message-service
+    image: message-service
+    depends_on:
+      cassandra: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+        CASSANDRA_HOST: cassandra
+        CASSANDRA_PORT: 9042
+        REDIS_HOST: redis
+        REDIS_PORT: 6379
+    ports:
+      - "8082:8082"
+
 volumes:
   postgres_data:
   redis_data:
+  cassandra_data:
