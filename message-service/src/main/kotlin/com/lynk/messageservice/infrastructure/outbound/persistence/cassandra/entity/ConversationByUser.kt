@@ -4,6 +4,7 @@ import org.springframework.data.cassandra.core.cql.Ordering
 import org.springframework.data.cassandra.core.cql.PrimaryKeyType
 import org.springframework.data.cassandra.core.mapping.Column
 import org.springframework.data.cassandra.core.mapping.PrimaryKey
+import org.springframework.data.cassandra.core.mapping.PrimaryKeyClass
 import org.springframework.data.cassandra.core.mapping.PrimaryKeyColumn
 import org.springframework.data.cassandra.core.mapping.Table
 import java.time.Instant
@@ -21,14 +22,17 @@ data class ConversationByUser(
     val lastMessagePreview: String? = null
 )
 
+@PrimaryKeyClass
 data class ConversationByUserKey(
     @PrimaryKeyColumn(
+        "user_id",
         type = PrimaryKeyType.PARTITIONED,
         ordinal = 0
     )
     val userId: UUID,
 
     @PrimaryKeyColumn(
+        "last_activity_timestamp",
         type = PrimaryKeyType.CLUSTERED,
         ordinal = 1,
         ordering = Ordering.DESCENDING

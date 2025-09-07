@@ -90,6 +90,9 @@ services:
         CASSANDRA_HOST: cassandra
         CASSANDRA_PORT: 9042
         REDIS_HOST: redis
+        JWT_KEYSTORE_LOCATION: keystore.jks
+        JWT_KEYSTORE_PASSWORD: ${JWT_KEYSTORE_PASSWORD}
+        JWT_KEY_PASSWORD: ${JWT_KEY_PASSWORD}
         REDIS_PORT: 6379
     ports:
       - "8082:8082"

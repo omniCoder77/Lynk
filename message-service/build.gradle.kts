@@ -38,6 +38,11 @@ dependencies {
     testImplementation("org.testcontainers:cassandra")
     testImplementation("org.testcontainers:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    implementation("com.razorpay:razorpay-java:1.4.8")
+    implementation("io.jsonwebtoken:jjwt-api:0.12.6")
+    implementation("io.jsonwebtoken:jjwt-impl:0.12.6")
+    implementation("io.jsonwebtoken:jjwt-jackson:0.12.6")
 }
 
 kotlin {
