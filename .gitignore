@@ -1,0 +1,4 @@
+*.jks
+.idea
+Lynk.iml
+.env
