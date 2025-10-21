@@ -1,10 +1,9 @@
 package com.lynk.messageservice.domain.port.driven
 
-import com.lynk.messageservice.infrastructure.outbound.persistence.cassandra.entity.ConversationByUser
+import com.lynk.messageservice.domain.model.Conversation
 import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
+import java.time.Instant
 
 interface ConversationService {
-    fun getConversations(userId: String): Flux<ConversationByUser>
-    fun getConversation(userId: String, recipientId: String): Mono<ConversationByUser>
+    fun getConversations(userId: String, start: Instant, end: Instant): Flux<Conversation>
 }

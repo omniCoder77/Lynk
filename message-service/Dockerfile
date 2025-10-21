@@ -29,7 +29,7 @@ RUN --mount=type=cache,target=${GRADLE_USER_HOME} \
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
 WORKDIR /app
-COPY keystore.jks ./
+COPY keystore.p12 ./
 
 COPY --from=builder /app/build/libs/*.jar app.jar
 

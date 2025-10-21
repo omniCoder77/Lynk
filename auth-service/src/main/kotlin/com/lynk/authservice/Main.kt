@@ -3,6 +3,7 @@ package com.lynk.authservice
 import com.lynk.authservice.application.service.TokenServiceImpl
 import com.lynk.authservice.infrastructure.outbound.jwt.JwtKeyManager
 import com.lynk.authservice.infrastructure.outbound.jwt.JwtTokenServiceImpl
+import java.util.UUID
 
 fun main() {
     val jwtKeyManager: JwtKeyManager = JwtKeyManager(
@@ -13,5 +14,6 @@ fun main() {
     )
 
     val tokenService = JwtTokenServiceImpl(5000,5000, jwtKeyManager)
-    println(tokenService.generateTestToken("9410295564"))
+    println(tokenService.generateTestToken(UUID.randomUUID().toString()))
+    println(UUID.randomUUID().toString())
 }

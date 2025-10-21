@@ -20,14 +20,8 @@ services:
   cassandra:
     image: scylladb/scylla
     container_name: cassandra
-    environment:
-      CASSANDRA_CLUSTER_NAME: "message"
-      CASSANDRA_NUM_TOKENS: 256
-      CASSANDRA_START_RPC: "true"
-      CASSANDRA_KEYSPACE: "message_keyspace"  # Optional: set default keyspace
     ports:
       - "9042:9042"
-      - "9160:9160"
     healthcheck:
       test: [ "CMD", "cqlsh", "-e", "describe keyspaces" ]
       interval: 10s
@@ -91,7 +85,7 @@ services:
       CASSANDRA_HOST: cassandra
       CASSANDRA_PORT: 9042
       REDIS_HOST: redis
-      JWT_KEYSTORE_LOCATION: keystore.jks
+      JWT_KEYSTORE_LOCATION: keystore.p12
       JWT_KEYSTORE_PASSWORD: ${JWT_KEYSTORE_PASSWORD}
       JWT_KEY_PASSWORD: ${JWT_KEY_PASSWORD}
       REDIS_PORT: 6379

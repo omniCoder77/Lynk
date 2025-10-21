@@ -1,23 +1,24 @@
 package com.lynk.messageservice.application.config
 
+import com.lynk.messageservice.infrastructure.inbound.web.websocket.ChatWebSocketHandler
+import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.messaging.simp.config.MessageBrokerRegistry
-import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker
-import org.springframework.web.socket.config.annotation.StompEndpointRegistry
-import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer
+import org.springframework.web.reactive.HandlerMapping
+import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping
+import org.springframework.web.reactive.socket.WebSocketHandler
+import org.springframework.web.reactive.socket.server.support.WebSocketHandlerAdapter
 
 @Configuration
-@EnableWebSocketMessageBroker
-class WebSocketConfig : WebSocketMessageBrokerConfigurer {
-    override fun configureMessageBroker(config: MessageBrokerRegistry) {
-        config.enableSimpleBroker(
-            "/topic",
-            "/queue"
-        )
-        config.setApplicationDestinationPrefixes("/app")
+class WebSocketConfig {
+
+    @Bean
+    fun handlerMapping(webSocketHandler: ChatWebSocketHandler): HandlerMapping {
+        val map = mapOf("/ws/chat" to webSocketHandler)
+        return SimpleUrlHandlerMapping(map, -1)
     }
 
-    override fun registerStompEndpoints(registry: StompEndpointRegistry) {
-        registry.addEndpoint("/ws").withSockJS()
+    @Bean
+    fun handlerAdapter(): WebSocketHandlerAdapter {
+        return WebSocketHandlerAdapter()
     }
 }

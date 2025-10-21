@@ -1,13 +1,20 @@
 package com.lynk.messageservice.domain.port.driven
 
-import com.lynk.messageservice.domain.model.RoomType
-import com.lynk.messageservice.infrastructure.outbound.persistence.cassandra.entity.Room
+import com.lynk.messageservice.domain.model.Room
+import com.lynk.messageservice.domain.model.RoomMember
+import com.lynk.messageservice.domain.model.RoomRole
+import com.lynk.messageservice.infrastructure.outbound.persistence.cassandra.entity.RoomMessage
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.time.Instant
 import java.util.UUID
 
 interface RoomService {
-    fun createRoom(name: String, creatorId: UUID, roomType: RoomType, description: String? = null, avatarUrl: String? = null): Mono<Room>
-    fun getRoomDetails(roomId: UUID): Mono<Room>
-    fun updateRoom(roomId: UUID, name: String?, description: String?, avatarUrl: String?, roomType: RoomType?): Mono<Room>
-    fun deleteRoom(roomId: UUID, callingUserId: UUID): Mono<Boolean>
+    fun createRoom(name: String, description: String?, creatorId: UUID, initialMemberIds: List<UUID>): Mono<UUID>
+    fun updateRoomDetails(roomId: UUID, name: String?, description: String?, avatarUrl: String?, updater: String): Mono<Boolean>
+    fun addMemberToRoom(roomId: UUID, memberId: UUID, role: RoomRole, inviterId: UUID): Mono<Boolean>
+    fun getRoomMembers(roomId: UUID): Flux<RoomMember>
+    fun sendMessage(roomId: UUID, senderId: UUID, content: String, replyToMessageId: UUID?, timestamp: Instant): Mono<Boolean>
+    fun getMessages(roomId: UUID, start: Instant, end: Instant): Flux<RoomMessage>
+    fun getRooms(memberId: UUID): Flux<Room>
 }

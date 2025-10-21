@@ -1,6 +1,7 @@
 package com.lynk.messageservice.infrastructure.outbound.security
 
 import jakarta.annotation.PostConstruct
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Component
@@ -21,6 +22,7 @@ class JwtKeyProvider(
     private lateinit var keyStore: KeyStore
     private lateinit var cachedKey: SecretKey
 
+    private val logger = LoggerFactory.getLogger(this::class.java)
 
     init {
         try {
@@ -32,6 +34,7 @@ class JwtKeyProvider(
             }
             cachedKey = loadKey()
         } catch (e: Exception) {
+            logger.error(e.message, e)
             throw IllegalStateException(
                 "Failed to load JWT keystore from location: $keyStoreLocation. Ensure the keystore file is present.",
                 e
@@ -47,6 +50,8 @@ class JwtKeyProvider(
         val keyProtection = KeyStore.PasswordProtection(keyPasswordStr.toCharArray())
         val keyEntry = keyStore.getEntry(keyAlias, keyProtection)
         return (keyEntry as? KeyStore.SecretKeyEntry)?.secretKey
-            ?: throw IllegalStateException("Key not found in keystore for alias: $keyAlias")
+            ?:run {
+                logger.error("Key not found in keystore for alias: $keyAlias")
+                throw IllegalStateException("Key not found in keystore for alias: $keyAlias") }
     }
 }

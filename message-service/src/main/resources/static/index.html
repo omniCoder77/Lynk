@@ -3,198 +3,315 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spring Boot Message Service Tester</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Message Service UI</title>
     <style>
-        body { padding: 20px; }
-        .container { max-width: 900px; }
-        #messages, #subscriptions { min-height: 150px; background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; overflow-y: auto; }
-        .status-connected { color: green; font-weight: bold; }
-        .status-disconnected { color: red; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; display: flex; height: 100vh; color: #333; }
+        .sidebar { width: 20%; background-color: #fff; border-right: 1px solid #ddd; display: flex; flex-direction: column; min-width: 200px; }
+        .main-content { flex-grow: 1; display: flex; }
+        .chat-area { flex-grow: 1; display: flex; flex-direction: column; background-color: #e5ddd5; }
+        .members-area { width: 20%; background-color: #fff; border-left: 1px solid #ddd; display: flex; flex-direction: column; min-width: 200px;}
+        .header { padding: 15px; background-color: #007bff; color: white; font-size: 1.2em; text-align: center; }
+        .room-list, .member-list { list-style-type: none; margin: 0; padding: 0; overflow-y: auto; flex-grow: 1;}
+        .room-list li, .member-list li { padding: 15px; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
+        .room-list li:hover, .room-list li.active { background-color: #f0f0f0; }
+        .member-list li .role { font-size: 0.8em; color: #888; }
+        .create-room-form, .add-member-form { padding: 15px; border-top: 1px solid #ddd; }
+        #roomNameInput, #memberIdInput { width: calc(100% - 22px); padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        #createRoomBtn, #addMemberBtn { width: 100%; padding: 10px; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        #createRoomBtn { background-color: #28a745; }
+        #addMemberBtn { background-color: #17a2b8; }
+        .messages { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column-reverse; }
+        .message { background-color: #fff; padding: 10px 15px; border-radius: 15px; margin-bottom: 10px; max-width: 60%; align-self: flex-start; word-wrap: break-word; }
+        .message.sent { background-color: #dcf8c6; align-self: flex-end; }
+        .message .sender { font-weight: bold; font-size: 0.8em; color: #555; margin-bottom: 4px; }
+        .message-input { display: flex; padding: 10px; background-color: #f0f0f0; }
+        #messageInput { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 20px; margin-right: 10px; }
+        #sendMessageBtn { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 20px; cursor: pointer; }
+        #current-room-header { padding: 15px; background-color: #f5f5f5; border-bottom: 1px solid #ddd; text-align: center; font-weight: bold; }
+        .hidden { display: none; }
+        .placeholder { text-align: center; padding: 50px; color: #777; font-size: 1.2em; }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1 class="mb-4">Message Service Tester</h1>
 
-    <div class="card mb-4">
-        <div class="card-header">Connection Status</div>
-        <div class="card-body">
-            <p>Status: <span id="status" class="status-disconnected">Disconnected</span></p>
-            <button id="connect" class="btn btn-success me-2">Connect</button>
-            <button id="disconnect" class="btn btn-danger" disabled>Disconnect</button>
+<div class="sidebar">
+    <div class="header">Rooms</div>
+    <div class="create-room-form">
+        <input type="text" id="roomNameInput" placeholder="New room name...">
+        <button id="createRoomBtn">Create Room</button>
+    </div>
+    <ul id="roomList" class="room-list">
+        <!-- Rooms will be loaded here -->
+    </ul>
+</div>
+
+<div class="main-content">
+    <div class="chat-area">
+        <div id="current-room-header">Select a room to start chatting</div>
+        <div class="messages" id="messagesContainer">
+            <div class="placeholder" id="chatPlaceholder">Messages will appear here</div>
+        </div>
+        <div class="message-input hidden" id="messageForm">
+            <input type="text" id="messageInput" placeholder="Type a message...">
+            <button id="sendMessageBtn">Send</button>
         </div>
     </div>
 
-    <div class="card mb-4">
-        <div class="card-header">Subscribe to Topic</div>
-        <div class="card-body">
-            <div class="input-group mb-3">
-                <span class="input-group-text">/topic/</span>
-                <input type="text" id="topicInput" class="form-control" placeholder="e.g., greetings, chat">
-                <button id="subscribe" class="btn btn-primary">Subscribe</button>
-            </div>
-            <h5>Active Subscriptions:</h5>
-            <div id="subscriptions" class="form-control"></div>
+    <div class="members-area hidden" id="membersArea">
+        <div class="header">Members</div>
+        <div class="add-member-form">
+            <input type="text" id="memberIdInput" placeholder="User ID to add...">
+            <button id="addMemberBtn">Add Member</button>
         </div>
-    </div>
-
-    <div class="card mb-4">
-        <div class="card-header">Send Message</div>
-        <div class="card-body">
-            <div class="input-group mb-3">
-                <span class="input-group-text">Destination: /app/</span>
-                <input type="text" id="sendDestinationInput" class="form-control" value="chat" placeholder="e.g., chat, sendToTopic">
-            </div>
-            <div class="input-group mb-3">
-                <span class="input-group-text">Message:</span>
-                <input type="text" id="messageInput" class="form-control" placeholder="Your message content">
-                <button id="send" class="btn btn-info">Send</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">Received Messages</div>
-        <div class="card-body">
-            <div id="messages" class="form-control"></div>
-        </div>
+        <ul id="memberList" class="member-list">
+            <!-- Members will be loaded here -->
+        </ul>
     </div>
 </div>
 
-<!-- WebJars for SockJS and STOMP -->
-<script src="/webjars/sockjs-client/sockjs.min.js"></script>
-<script src="/webjars/stomp-websocket/stomp.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    let stompClient = null;
-    let subscriptions = {}; // To keep track of active subscriptions by topic
+    const API_BASE_URL = 'http://localhost:8082/api/v1';
+    const WEBSOCKET_URL = 'ws://localhost:8082/ws/chat';
+    // Your provided valid access token
+    const ACCESS_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjZjA0YWJjZC1jM2NmLTQyN2EtOWVjMi05NWM5OGFjM2QwODEiLCJpYXQiOjE3NjA3Mjg4Mzl9.-1sAcvCQjKgCLPB7QkC012dPEPA7qhxOGUIqriOIrN8';
+    const myUserId = JSON.parse(atob(ACCESS_TOKEN.split('.')[1])).sub;
 
-    const connectButton = document.getElementById('connect');
-    const disconnectButton = document.getElementById('disconnect');
-    const statusSpan = document.getElementById('status');
-    const topicInput = document.getElementById('topicInput');
-    const subscribeButton = document.getElementById('subscribe');
-    const subscriptionsDiv = document.getElementById('subscriptions');
-    const sendDestinationInput = document.getElementById('sendDestinationInput');
+    // UI Elements
+    const roomList = document.getElementById('roomList');
+    const messagesContainer = document.getElementById('messagesContainer');
+    const messageForm = document.getElementById('messageForm');
+    const createRoomBtn = document.getElementById('createRoomBtn');
+    const sendMessageBtn = document.getElementById('sendMessageBtn');
+    const roomNameInput = document.getElementById('roomNameInput');
     const messageInput = document.getElementById('messageInput');
-    const sendButton = document.getElementById('send');
-    const messagesDiv = document.getElementById('messages');
+    const currentRoomHeader = document.getElementById('current-room-header');
+    const membersArea = document.getElementById('membersArea');
+    const memberList = document.getElementById('memberList');
+    const addMemberBtn = document.getElementById('addMemberBtn');
+    const memberIdInput = document.getElementById('memberIdInput');
+    const chatPlaceholder = document.getElementById('chatPlaceholder');
 
-    function setConnected(connected) {
-        connectButton.disabled = connected;
-        disconnectButton.disabled = !connected;
-        sendButton.disabled = !connected;
-        subscribeButton.disabled = !connected;
-        statusSpan.textContent = connected ? 'Connected' : 'Disconnected';
-        statusSpan.className = connected ? 'status-connected' : 'status-disconnected';
-        if (!connected) {
-            messagesDiv.innerHTML = '';
-            subscriptionsDiv.innerHTML = '';
-            subscriptions = {};
-        }
-    }
+    let currentRoomId = null;
+    let socket;
 
-    function connect() {
-        const socket = new SockJS('/ws'); // Matches the endpoint in WebSocketConfig
-        stompClient = Stomp.over(socket);
-        stompClient.connect({}, function (frame) {
-            setConnected(true);
-            addMessageToDisplay('Connected: ' + frame);
-        }, function (error) {
-            addMessageToDisplay('STOMP Error: ' + error, 'error');
-            setConnected(false);
-        });
-    }
+    const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${ACCESS_TOKEN}`
+    };
 
-    function disconnect() {
-        if (stompClient !== null) {
-            stompClient.disconnect(function() {
-                setConnected(false);
-                addMessageToDisplay('Disconnected');
-            });
-        }
-    }
+    // --- WebSocket Logic ---
+    function connectWebSocket() {
+        console.log("Attempting to connect to WebSocket...");
+        const wsUrlWithToken = `${WEBSOCKET_URL}?token=${ACCESS_TOKEN}`; // Pass token as query param
+        socket = new WebSocket(wsUrlWithToken);
 
-    function subscribeToTopic() {
-        const topicName = topicInput.value.trim();
-        if (!topicName) {
-            alert("Please enter a topic name!");
-            return;
-        }
-        const fullTopic = `/topic/${topicName}`;
-
-        if (subscriptions[fullTopic]) {
-            addMessageToDisplay(`Already subscribed to ${fullTopic}.`);
-            return;
-        }
-
-        if (stompClient && stompClient.connected) {
-            const subscription = stompClient.subscribe(fullTopic, function (message) {
-                addMessageToDisplay(`Received on [${fullTopic}]: ${message.body}`);
-            });
-            subscriptions[fullTopic] = subscription;
-            addMessageToDisplay(`Subscribed to ${fullTopic}`);
-            updateSubscriptionsDisplay();
-        } else {
-            addMessageToDisplay('Not connected. Please connect first.', 'error');
-        }
-        topicInput.value = '';
-    }
-
-    function updateSubscriptionsDisplay() {
-        subscriptionsDiv.innerHTML = '';
-        for (const topic in subscriptions) {
-            if (subscriptions.hasOwnProperty(topic)) {
-                const topicSpan = document.createElement('span');
-                topicSpan.className = 'badge bg-secondary me-2 mb-1';
-                topicSpan.textContent = topic;
-                subscriptionsDiv.appendChild(topicSpan);
+        socket.onopen = () => console.log("WebSocket connected!");
+        socket.onmessage = (event) => {
+            console.log("WebSocket message received:", event.data);
+            const message = JSON.parse(event.data);
+            if (message.roomId === currentRoomId) {
+                fetchMessages(currentRoomId);
             }
+        };
+        socket.onclose = () => console.log("WebSocket disconnected.");
+        socket.onerror = (error) => console.error("WebSocket error:", error);
+    }
+
+    // --- API Functions ---
+    async function fetchMyRooms() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/rooms`, { headers });
+            if (!response.ok) throw new Error('Failed to fetch rooms.');
+            const rooms = await response.json();
+
+            roomList.innerHTML = ''; // Clear list
+            if (rooms.length === 0) {
+                roomList.innerHTML = '<li style="cursor:default; text-align:center; color:#777;">No rooms found. Create one!</li>';
+            } else {
+                rooms.forEach(room => {
+                    const li = document.createElement('li');
+                    li.textContent = room.name;
+                    li.dataset.roomId = room.id;
+                    li.dataset.roomName = room.name;
+                    li.onclick = (e) => selectRoom(e.target.dataset.roomId, e.target.dataset.roomName);
+                    roomList.appendChild(li);
+                });
+            }
+        } catch (error) {
+            console.error("Error fetching rooms:", error);
+            roomList.innerHTML = '<li>Could not load rooms.</li>';
         }
     }
 
-    function sendMessage() {
-        const destination = sendDestinationInput.value.trim();
-        const message = messageInput.value.trim();
+    async function createRoom() {
+        const name = roomNameInput.value.trim();
+        if (!name) return alert('Room name cannot be empty.');
 
-        if (!destination) {
-            alert("Please enter a message destination!");
-            return;
-        }
-        if (!message) {
-            alert("Please enter a message content!");
-            return;
-        }
+        try {
+            const response = await fetch(`${API_BASE_URL}/rooms`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ name, description: "", initialMemberIds: [] })
+            });
+            if (!response.ok) throw new Error(`Error creating room: ${response.statusText}`);
 
-        if (stompClient && stompClient.connected) {
-            // The destination here is relative to the /app prefix configured in WebSocketConfig
-            stompClient.send(`/app/${destination}`, {}, message);
-            addMessageToDisplay(`Sent to /app/${destination}: ${message}`);
-        } else {
-            addMessageToDisplay('Not connected. Please connect first.', 'error');
-        }
-        messageInput.value = '';
-    }
-
-    function addMessageToDisplay(message, type = 'info') {
-        const messageElement = document.createElement('div');
-        messageElement.className = `alert alert-${type === 'error' ? 'danger' : 'success'} p-1 mb-1`;
-        messageElement.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-        messagesDiv.prepend(messageElement); // Add to top
-        if (messagesDiv.children.length > 50) { // Keep message log from getting too long
-            messagesDiv.removeChild(messagesDiv.lastChild);
+            await response.json();
+            roomNameInput.value = '';
+            await fetchMyRooms(); // Refresh the entire room list
+        } catch (error) {
+            console.error(error);
+            alert(error.message);
         }
     }
 
-    // Event Listeners
-    connectButton.addEventListener('click', connect);
-    disconnectButton.addEventListener('click', disconnect);
-    subscribeButton.addEventListener('click', subscribeToTopic);
-    sendButton.addEventListener('click', sendMessage);
+    async function fetchMessages(roomId) {
+        if (!roomId) return;
+        try {
+            const response = await fetch(`${API_BASE_URL}/rooms/${roomId}/messages`, { headers });
+            if (!response.ok) throw new Error('Failed to fetch messages.');
 
-    setConnected(false); // Initial state
+            const messages = await response.json();
+            messagesContainer.innerHTML = '';
+            if (messages.length > 0) {
+                chatPlaceholder.classList.add('hidden');
+                messages.reverse().forEach(msg => {
+                    const msgDiv = document.createElement('div');
+                    msgDiv.classList.add('message');
+                    if (msg.senderId === myUserId) {
+                        msgDiv.classList.add('sent');
+                    }
+                    // A real app would fetch usernames, here we just show the ID.
+                    msgDiv.innerHTML = `<div class="sender">${msg.senderId.split('-')[0]}...</div><div>${msg.content}</div>`;
+                    messagesContainer.appendChild(msgDiv);
+                });
+            } else {
+                chatPlaceholder.textContent = 'No messages yet. Be the first to say something!';
+                chatPlaceholder.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error(error);
+            messagesContainer.innerHTML = '<div class="placeholder">Could not load messages.</div>';
+        }
+    }
+
+    async function sendMessage() {
+        const content = messageInput.value.trim();
+        if (!content || !currentRoomId) return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/rooms/${currentRoomId}/messages`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ content })
+            });
+
+            if (response.status !== 201) throw new Error('Failed to send message.');
+
+            messageInput.value = '';
+            // Don't re-fetch here, let the websocket handle the update for a true real-time feel
+            // fetchMessages(currentRoomId);
+        } catch (error) {
+            console.error(error);
+            alert(error.message);
+        }
+    }
+
+    async function fetchRoomMembers(roomId) {
+        if (!roomId) return;
+        try {
+            const response = await fetch(`${API_BASE_URL}/rooms/${roomId}/members`, { headers });
+            if (!response.ok) throw new Error('Failed to fetch members.');
+            const members = await response.json();
+
+            memberList.innerHTML = '';
+            members.forEach(member => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div>${member.displayName} ${member.memberId === myUserId ? '(You)' : ''}</div>
+                    <div class="role">${member.role}</div>
+                `;
+                memberList.appendChild(li);
+            });
+
+        } catch (error) {
+            console.error("Error fetching members:", error);
+            memberList.innerHTML = '<li>Could not load members.</li>';
+        }
+    }
+
+    async function addMember() {
+        const memberId = memberIdInput.value.trim();
+        if (!memberId || !currentRoomId) return alert('Member ID cannot be empty.');
+        // Basic UUID validation
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(memberId)) return alert('Please enter a valid UUID for the Member ID.');
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/rooms/${currentRoomId}/members`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ memberId, role: "MEMBER" })
+            });
+
+            if (!response.ok) throw new Error(`Failed to add member: ${response.statusText}`);
+
+            memberIdInput.value = '';
+            await fetchRoomMembers(currentRoomId); // Refresh member list
+        } catch (error) {
+            console.error(error);
+            alert(error.message);
+        }
+    }
+
+
+    // --- UI Logic ---
+    function selectRoom(roomId, roomName) {
+        currentRoomId = roomId;
+        currentRoomHeader.textContent = `Room: ${roomName}`;
+        messageForm.classList.remove('hidden');
+        membersArea.classList.remove('hidden');
+
+        // Highlight active room
+        document.querySelectorAll('#roomList li').forEach(li => {
+            if (li.dataset.roomId === roomId) {
+                li.classList.add('active');
+            } else {
+                li.classList.remove('active');
+            }
+        });
+
+        fetchMessages(roomId);
+        fetchRoomMembers(roomId);
+    }
+
+    // --- Event Listeners ---
+    createRoomBtn.addEventListener('click', createRoom);
+    sendMessageBtn.addEventListener('click', sendMessage);
+    addMemberBtn.addEventListener('click', addMember);
+
+    messageInput.addEventListener('keyup', (event) => {
+        if (event.key === 'Enter') sendMessage();
+    });
+    roomNameInput.addEventListener('keyup', (event) => {
+        if (event.key === 'Enter') createRoom();
+    });
+    memberIdInput.addEventListener('keyup', (event) => {
+        if (event.key === 'Enter') addMember();
+    });
+
+
+    // --- Initial Load ---
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchMyRooms();
+        // The backend `JwtAuthenticationFilter` reads the token from the Authorization header for HTTP requests.
+        // For WebSockets, the standard protocol doesn't support headers. A common workaround is to pass the
+        // token as a query parameter on connection, which requires the backend to be configured to read it.
+        // Since that's not implemented, we will skip the websocket connection for now to avoid auth errors.
+        // connectWebSocket();
+        console.log("UI Loaded. Your user ID is:", myUserId);
+    });
+
 </script>
 </body>
 </html>

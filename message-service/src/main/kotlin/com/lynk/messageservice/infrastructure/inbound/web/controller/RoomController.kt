@@ -1,67 +1,95 @@
 package com.lynk.messageservice.infrastructure.inbound.web.controller
 
+import com.lynk.messageservice.domain.model.Room
 import com.lynk.messageservice.domain.port.driven.RoomService
-import com.lynk.messageservice.infrastructure.inbound.web.dto.CreateRoomRequest
-import com.lynk.messageservice.infrastructure.inbound.web.dto.UpdateRoomRequest
-import com.lynk.messageservice.infrastructure.outbound.persistence.cassandra.entity.Room
+import com.lynk.messageservice.infrastructure.inbound.web.dto.request.AddRoomMemberRequest
+import com.lynk.messageservice.infrastructure.inbound.web.dto.request.CreateRoomRequest
+import com.lynk.messageservice.infrastructure.inbound.web.dto.request.SendMessageRequest
+import com.lynk.messageservice.infrastructure.inbound.web.dto.request.UpdateRoomRequest
+import com.lynk.messageservice.infrastructure.inbound.web.dto.response.MessageResponse
+import com.lynk.messageservice.infrastructure.inbound.web.dto.response.RoomMemberResponse
+import com.lynk.messageservice.infrastructure.inbound.web.dto.response.toResponse
+import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
-import org.springframework.web.server.ResponseStatusException
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.util.UUID
+import java.security.Principal
+import java.time.Instant
+import java.time.temporal.ChronoUnit
+import java.util.*
 
 @RestController
 @RequestMapping("/api/v1/rooms")
 class RoomController(private val roomService: RoomService) {
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    fun createRoom(@RequestBody request: CreateRoomRequest, authentication: Authentication): Mono<Room> {
-        val creatorId = UUID.fromString(authentication.name)
-        return roomService.createRoom(
-            request.name,
-            creatorId,
-            request.roomType,
-            request.description,
-            request.avatarUrl
-        )
+    fun createRoom(
+        @Valid @RequestBody request: CreateRoomRequest, authentication: Authentication
+    ): Mono<ResponseEntity<Map<String, UUID>>> {
+        val creatorId = try { UUID.fromString(authentication.name) } catch (e: IllegalArgumentException) {
+            return Mono.just(ResponseEntity.status(HttpStatus.FORBIDDEN).build())
+        }
+        return roomService.createRoom(request.name, request.description, creatorId, request.initialMemberIds)
+            .map { roomId ->
+                ResponseEntity.status(HttpStatus.CREATED).body(mapOf("roomId" to roomId))
+            }
     }
 
-    @GetMapping("/{roomId}")
-    fun getRoom(@PathVariable roomId: UUID): Mono<Room> {
-        return roomService.getRoomDetails(roomId)
-            .switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.NOT_FOUND, "Room not found")))
+    @GetMapping
+    fun getRooms(authentication: Authentication): Flux<Room> {
+        val userId = UUID.fromString(authentication.name)
+        return roomService.getRooms(userId)
     }
 
     @PutMapping("/{roomId}")
     fun updateRoom(
-        @PathVariable roomId: UUID,
-        @RequestBody request: UpdateRoomRequest,
-        authentication: Authentication
-    ): Mono<Room> {
-        return roomService.updateRoom(
-            roomId,
-            request.name,
-            request.description,
-            request.avatarUrl,
-            request.roomType
-        ).switchIfEmpty(Mono.error(ResponseStatusException(HttpStatus.NOT_FOUND, "Room not found or update failed")))
+        @Valid @PathVariable roomId: UUID, @RequestBody request: UpdateRoomRequest, authentication: Authentication
+    ): Mono<ResponseEntity<Void>> {
+        return roomService.updateRoomDetails(roomId, request.name, request.description, request.avatarUrl, authentication.name)
+            .map { ResponseEntity.ok().build() }
     }
 
-    @DeleteMapping("/{roomId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    fun deleteRoom(@PathVariable roomId: UUID, authentication: Authentication): Mono<Void> {
-        val callingUserId = UUID.fromString(authentication.name)
-        return roomService.deleteRoom(roomId, callingUserId)
-            .flatMap { success ->
-                if (success) Mono.empty()
-                else Mono.error(
-                    ResponseStatusException(
-                        HttpStatus.FORBIDDEN,
-                        "Unauthorized to delete room or room not found"
-                    )
-                )
+    @GetMapping("/{roomId}/members")
+    fun getRoomMembers(@Valid @PathVariable roomId: UUID): Mono<ResponseEntity<List<RoomMemberResponse>>> {
+        return roomService.getRoomMembers(roomId).map { it.toResponse() }.collectList().map { ResponseEntity.ok(it) }
+    }
+
+    @PostMapping("/{roomId}/members")
+    fun addMember(
+        @Valid @PathVariable roomId: UUID,@Valid @RequestBody request: AddRoomMemberRequest, principal: Principal
+    ): Mono<ResponseEntity<Void>> {
+        val inviterId = UUID.fromString(principal.name)
+        return roomService.addMemberToRoom(roomId, request.memberId, request.role, inviterId)
+            .map { ResponseEntity.status(HttpStatus.CREATED).build() }
+    }
+
+    @GetMapping("/{roomId}/messages")
+    fun getMessages(
+        @PathVariable roomId: UUID,
+        @RequestParam(required = false) start: Instant?,
+        @RequestParam(required = false) end: Instant?
+    ): Mono<ResponseEntity<List<MessageResponse>>> {
+        val endTime = end ?: Instant.now()
+        val startTime = start ?: endTime.minus(30, ChronoUnit.DAYS)
+
+        return roomService.getMessages(roomId, startTime, endTime).map { it.toResponse() }.collectList()
+            .map { ResponseEntity.ok(it) }
+    }
+
+    @PostMapping("/{roomId}/messages")
+    fun sendMessage(
+        @PathVariable roomId: UUID,@Valid @RequestBody request: SendMessageRequest, principal: Principal
+    ): Mono<ResponseEntity<Void>> {
+        val senderId = UUID.fromString(principal.name)
+        return roomService.sendMessage(roomId, senderId, request.content, request.replyToMessageId, request.timestamp).map { success ->
+                if (success) {
+                    ResponseEntity.status(HttpStatus.CREATED).build()
+                } else {
+                    ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+                }
             }
     }
 }

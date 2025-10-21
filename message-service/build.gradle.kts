@@ -24,8 +24,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
-    implementation("org.springframework.boot:spring-boot-starter-websocket")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
@@ -33,6 +33,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    implementation("org.springframework.boot:spring-boot-starter-cache")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.testcontainers:cassandra")
@@ -48,6 +49,19 @@ dependencies {
     implementation("org.webjars:webjars-locator-core")
     implementation("org.webjars:sockjs-client:1.5.1")
     implementation("org.webjars:stomp-websocket:2.3.4")
+
+    implementation("org.springframework:spring-messaging")
+    implementation("org.springframework:spring-websocket")
+
+    implementation("redis.clients:jedis:6.0.0")
+
+    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.5.0")
+
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
+
+    implementation("jakarta.validation:jakarta.validation-api:3.1.1")
+
+    implementation("com.google.firebase:firebase-admin:9.7.0")
 }
 
 kotlin {
