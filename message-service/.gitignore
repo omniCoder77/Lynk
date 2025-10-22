@@ -13,6 +13,7 @@ build/
 .settings
 .springBeans
 .sts4-cache
+src/main/resources/lynk-fcm.json
 bin/
 /src/main/resources/google-services.json
 !**/src/main/**/bin/
