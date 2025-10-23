@@ -5,6 +5,4 @@ import java.util.UUID
 data class Room(
     val id: UUID,
     val name: String,
-    val avatarUrl: String?,
-    val lastMessage: String?
 )

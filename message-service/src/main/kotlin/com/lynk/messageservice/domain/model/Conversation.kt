@@ -8,5 +8,4 @@ data class Conversation(
     val recipientId: UUID,
     val lastActivityTimestamp: Instant,
     val conversationName: String,
-    val lastMessagePreview: String?
 )

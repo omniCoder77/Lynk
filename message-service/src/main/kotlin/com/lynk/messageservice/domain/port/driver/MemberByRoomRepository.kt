@@ -8,7 +8,7 @@ import reactor.core.publisher.Mono
 import java.util.UUID
 
 interface MemberByRoomRepository {
-    fun createMemberByRoom(roomId: UUID, memberId: UUID, role: RoomRole, displayName: String, description: String? = null, avatarUrl: String? = null): Mono<Boolean>
+    fun createMemberByRoom(roomId: UUID, memberId: UUID, role: RoomRole, displayName: String, description: String? = null): Mono<Boolean>
     fun updateRoom(description: String?, avatarUrl: String?, displayName: String?, roomId: UUID, updater: UUID): Flux<UUID>
     fun getMembersByRoomId(roomId: UUID): Flux<RoomMember>
     fun getMemberById(inviterId: UUID, roomId: UUID): Mono<MemberByRoom>

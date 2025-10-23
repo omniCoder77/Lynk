@@ -96,7 +96,6 @@ class RoomServiceImpl(
                         role = role,
                         displayName = it.displayName,
                         description = it.description,
-                        avatarUrl = it.avatarUrl
                     )
                 }
             }

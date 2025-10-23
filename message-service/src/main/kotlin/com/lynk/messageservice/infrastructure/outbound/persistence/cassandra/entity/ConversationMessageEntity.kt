@@ -3,6 +3,7 @@ package com.lynk.messageservice.infrastructure.outbound.persistence.cassandra.en
 import com.lynk.messageservice.domain.model.Message
 import org.springframework.data.cassandra.core.cql.Ordering
 import org.springframework.data.cassandra.core.cql.PrimaryKeyType
+import org.springframework.data.cassandra.core.mapping.Column
 import org.springframework.data.cassandra.core.mapping.PrimaryKey
 import org.springframework.data.cassandra.core.mapping.PrimaryKeyClass
 import org.springframework.data.cassandra.core.mapping.PrimaryKeyColumn
@@ -10,9 +11,9 @@ import org.springframework.data.cassandra.core.mapping.Table
 import java.time.Instant
 import java.util.*
 
-@Table("message")
+@Table("conversation_message")
 data class ConversationMessageEntity(
-    @PrimaryKey val key: MessageKey, val senderId: UUID, val content: String
+    @PrimaryKey val key: MessageKey, @Column("sender_id") val senderId: UUID, @Column("content") val content: String
 ) {
     fun toDomain() = Message(
         conversationId = key.conversationId,

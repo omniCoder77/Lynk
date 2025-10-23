@@ -11,5 +11,4 @@ data class RoomMember(
     val memberId: UUID,
     val roomId: UUID,
     val description: String?,
-    val avatarUrl: String?,
 ): Serializable

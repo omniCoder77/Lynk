@@ -2,6 +2,7 @@ package com.lynk.messageservice.infrastructure.outbound.persistence.cassandra.en
 
 import com.lynk.messageservice.infrastructure.util.BucketUtils.toTimeBucket
 import org.springframework.data.cassandra.core.cql.PrimaryKeyType
+import org.springframework.data.cassandra.core.mapping.Column
 import org.springframework.data.cassandra.core.mapping.PrimaryKey
 import org.springframework.data.cassandra.core.mapping.PrimaryKeyClass
 import org.springframework.data.cassandra.core.mapping.PrimaryKeyColumn
@@ -15,9 +16,13 @@ import java.util.UUID
 @Table("room_messages")
 data class RoomMessage(
     @PrimaryKey val key: RoomMessageKey,
+    @Column("sender_id")
     val senderId: UUID,
+    @Column("content")
     val content: String,
+    @Column("reply_to_message_id")
     val replyToMessageId: UUID? = null,
+    @Column("reactions")
     val reactions: Map<String, Int> = emptyMap(),
 )
 

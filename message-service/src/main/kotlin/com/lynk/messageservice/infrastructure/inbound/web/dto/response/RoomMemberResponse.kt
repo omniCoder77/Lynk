@@ -10,7 +10,6 @@ data class RoomMemberResponse(
     val displayName: String,
     val role: RoomRole,
     val joinedAt: Instant,
-    val avatarUrl: String?,
 )
 fun RoomMember.toResponse(): RoomMemberResponse {
     return RoomMemberResponse(
@@ -18,6 +17,5 @@ fun RoomMember.toResponse(): RoomMemberResponse {
         displayName = this.displayName,
         role = this.role,
         joinedAt = this.joinedAt,
-        avatarUrl = this.avatarUrl
     )
 }

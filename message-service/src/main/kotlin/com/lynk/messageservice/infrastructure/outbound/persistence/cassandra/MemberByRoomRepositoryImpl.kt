@@ -27,7 +27,7 @@ class MemberByRoomRepositoryImpl(
     private val logger = LoggerFactory.getLogger(this::class.java)
 
     override fun createMemberByRoom(
-        roomId: UUID, memberId: UUID, role: RoomRole, displayName: String, description: String?, avatarUrl: String?
+        roomId: UUID, memberId: UUID, role: RoomRole, displayName: String, description: String?
     ): Mono<Boolean> {
         val memberByRoom = MemberByRoom(
             memberByRoomKey = MemberByRoomKey(
@@ -35,12 +35,10 @@ class MemberByRoomRepositoryImpl(
             ),
             displayName = displayName,
             description = description,
-            avatarUrl = avatarUrl,
             role = role.name,
             joinedAt = Instant.now()
         )
         return reactiveCassandraTemplate.insert(memberByRoom).map { true }.doOnSuccess {
-            // Manual cache eviction for precision
             evictCaches(roomId, memberId)
         }.doOnError { logger.error(it.message, it) }.onErrorReturn(false)
     }
@@ -48,16 +46,14 @@ class MemberByRoomRepositoryImpl(
     override fun updateRoom(
         description: String?, avatarUrl: String?, displayName: String?, roomId: UUID, updater: UUID
     ): Flux<UUID> {
-        // FIX: Correctly check for Admin role and use own (cached) methods
         return getMemberById(updater, roomId)
             .filter { it.role == RoomRole.ADMIN.name }
             .flatMapMany { _ ->
-                getMembersByRoomId(roomId) // Use own method to leverage cache
+                getMembersByRoomId(roomId)
                     .flatMap { memberToUpdate ->
                         val updatedMember = MemberByRoom(
                             memberByRoomKey = MemberByRoomKey(roomId = roomId, memberId = memberToUpdate.memberId),
                             description = description ?: memberToUpdate.description,
-                            avatarUrl = avatarUrl ?: memberToUpdate.avatarUrl,
                             displayName = displayName ?: memberToUpdate.displayName,
                             role = memberToUpdate.role.name,
                             joinedAt = memberToUpdate.joinedAt
@@ -71,7 +67,6 @@ class MemberByRoomRepositoryImpl(
 
     @Cacheable(value = ["membersByRoom"], key = "#roomId")
     override fun getMembersByRoomId(roomId: UUID): Flux<RoomMember> {
-        // Use a proper query for composite keys
         val query = Query.query(Criteria.where("room_id").`is`(roomId), Criteria.where("bucket").`is`(roomId.bucket()))
         return reactiveCassandraTemplate.select(query, MemberByRoom::class.java)
             .map { it.toDomain() }

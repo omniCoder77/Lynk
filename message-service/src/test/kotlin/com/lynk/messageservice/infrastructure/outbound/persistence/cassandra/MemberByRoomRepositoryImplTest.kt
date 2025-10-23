@@ -48,7 +48,7 @@ class MemberByRoomRepositoryImplTest {
             Assertions.assertNotNull(cacheManager.getCache("membersByRoom")?.get(roomId1))
 
             val result = memberByRoomRepository.createMemberByRoom(
-                roomId1, memberId1, RoomRole.MEMBER, "Test User 1", "Description 1", "avatar1.png"
+                roomId1, memberId1, RoomRole.MEMBER, "Test User 1", "Description 1"
             )
             StepVerifier.create(result).expectNext(true).verifyComplete()
 
