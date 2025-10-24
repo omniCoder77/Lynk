@@ -13,12 +13,12 @@ import java.util.*
 
 @Table("conversation_message")
 data class ConversationMessageEntity(
-    @PrimaryKey val key: MessageKey, @Column("sender_id") val senderId: UUID, @Column("content") val content: String
+    @PrimaryKey val key: MessageKey, val sender_id: UUID, val content: String
 ) {
     fun toDomain() = Message(
         conversationId = key.conversationId,
         messageTimestamp = key.messageTimestamp,
-        senderId = senderId,
+        senderId = sender_id,
         content = content
     )
 }

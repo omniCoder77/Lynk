@@ -10,5 +10,5 @@ data class SendMessageRequest(
     @field:Size(max = 10000, message = "Message content cannot exceed 5000 characters.")
     val content: String,
     val replyToMessageId: UUID? = null,
-    val timestamp: Instant
+    val timestamp: Instant = Instant.now()
 )

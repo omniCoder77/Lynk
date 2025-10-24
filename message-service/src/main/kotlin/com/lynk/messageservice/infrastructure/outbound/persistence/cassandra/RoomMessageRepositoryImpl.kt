@@ -26,8 +26,8 @@ class RoomMessageRepositoryImpl(private val reactiveCassandraTemplate: ReactiveC
         val roomMessage = RoomMessage(
             key = RoomMessageKey(roomId = roomId, messageId = messageId, timestamp = timestamp),
             content = content,
-            senderId = senderId,
-            replyToMessageId = replyToMessageId
+            sender_id = senderId,
+            reply_to_message_id = replyToMessageId
         )
         return reactiveCassandraTemplate.insert(roomMessage).map { true }.doOnError { logger.error(it.message, it) }
             .onErrorReturn(false)

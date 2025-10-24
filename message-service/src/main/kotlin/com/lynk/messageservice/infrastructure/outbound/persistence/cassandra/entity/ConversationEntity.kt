@@ -9,14 +9,14 @@ import java.util.*
 @Table("conversation")
 data class ConversationEntity(
     @PrimaryKey val key: ConversationKey,
-    @Column("conversation_name") val conversationName: String,
+    val conversation_name: String,
     val lastActivityTimestamp: Instant
 ) {
     fun toDomain() = Conversation(
         userId = key.userId,
         recipientId = key.recipientId,
         lastActivityTimestamp = lastActivityTimestamp,
-        conversationName = conversationName,
+        conversationName = conversation_name,
     )
 }
 

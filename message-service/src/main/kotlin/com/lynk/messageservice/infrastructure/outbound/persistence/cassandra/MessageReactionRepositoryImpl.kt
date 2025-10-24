@@ -20,7 +20,7 @@ class MessageReactionRepositoryImpl(private val reactiveCassandraTemplate: React
         val messageReaction = MessageReaction(
             key = MessageReactionKey(
                 roomId = roomId, messageId = messageId, memberId = memberId
-            ), reactedAt = reactedAt, emoji = emoji
+            ), reacted_at = reactedAt, emoji = emoji
         )
         return reactiveCassandraTemplate.insert(messageReaction).map { true }.doOnError { logger.error(it.message, it) }
             .onErrorReturn(false)

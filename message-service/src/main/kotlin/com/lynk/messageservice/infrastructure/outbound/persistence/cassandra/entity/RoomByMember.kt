@@ -14,7 +14,6 @@ import java.util.*
 data class RoomByMember(
     @PrimaryKey
     val roomByMemberKey: RoomByMemberKey,
-    @Column("name")
     val name: String,
 ) {
     fun toDomain() = Room(

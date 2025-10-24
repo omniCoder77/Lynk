@@ -14,7 +14,7 @@ services:
       timeout: 5s
       retries: 5
     volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./init/init-postgresql.sql:/docker-entrypoint-initdb.d/init-postgresql.sql
       - postgres_data:/var/lib/postgresql/data
 
   cassandra:
@@ -63,8 +63,8 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_KEYSTORE_LOCATION: keystore.jks
-      JWT_KEYSTORE_PASSWORD: ${JWT_KEYSTORE_PASSWORD}
-      JWT_KEY_PASSWORD: ${JWT_KEY_PASSWORD}
+      JWT_KEYSTORE_PASSWORD: ${JWT_KEYPASSWORD}
+      JWT_KEY_PASSWORD: ${JWT_KEYPASSWORD}
       TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
       TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER}
       TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
@@ -86,8 +86,8 @@ services:
       CASSANDRA_PORT: 9042
       REDIS_HOST: redis
       JWT_KEYSTORE_LOCATION: keystore.p12
-      JWT_KEYSTORE_PASSWORD: ${JWT_KEYSTORE_PASSWORD}
-      JWT_KEY_PASSWORD: ${JWT_KEY_PASSWORD}
+      JWT_KEYSTORE_PASSWORD: ${JWT_KEYPASSWORD}
+      JWT_KEY_PASSWORD: ${JWT_KEYPASSWORD}
       REDIS_PORT: 6379
     ports:
       - "8082:8082"

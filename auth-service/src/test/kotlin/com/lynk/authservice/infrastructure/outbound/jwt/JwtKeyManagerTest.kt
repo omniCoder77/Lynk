@@ -8,11 +8,11 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.SecretKeySpec
 
 class JwtKeyManagerTest {
-    val jwtKeyManager: JwtKeyManager = JwtKeyManager(
-        keyStoreFilePath = System.getenv("JWT_KEYSTORE_LOCATION"),
-        keyStorePasswordStr = System.getenv("JWT_KEYSTORE_PASSWORD"),
+    val jwtKeyManager = JwtKeyManager(
+        keyStoreFilePath = "jwtKeystore.p12",
+        keyStorePasswordStr = "NJHUy8809889ijKJHYgFfGHJkL878",
         keyAlias = "jwtKey",
-        keyPasswordStr = System.getenv("JWT_KEY_PASSWORD")
+        keyPasswordStr = "khuhu9878uijKjByTFthjK"
     )
 
     @Test

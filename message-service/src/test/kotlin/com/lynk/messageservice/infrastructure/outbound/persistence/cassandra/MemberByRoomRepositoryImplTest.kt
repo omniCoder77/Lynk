@@ -124,12 +124,12 @@ class MemberByRoomRepositoryImplTest {
         fun `should retrieve a specific member by room ID and member ID`() {
             memberByRoomRepository.createMemberByRoom(roomId1, memberId1, RoomRole.MEMBER, "Specific Member").block()
             val result = memberByRoomRepository.getMemberById(memberId1, roomId1)
-            StepVerifier.create(result).expectNextMatches { it.displayName == "Specific Member" }.verifyComplete()
+            StepVerifier.create(result).expectNextMatches { it.display_name == "Specific Member" }.verifyComplete()
 
             val cachedMember =
                 cacheManager.getCache("memberByRoomAndId")?.get("$roomId1:$memberId1", MemberByRoom::class.java)
             Assertions.assertNotNull(cachedMember)
-            Assertions.assertEquals("Specific Member", cachedMember?.displayName)
+            Assertions.assertEquals("Specific Member", cachedMember?.display_name)
         }
     }
 }

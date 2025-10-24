@@ -12,9 +12,7 @@ import java.util.*
 @Table("message_reactions")
 data class MessageReaction(
     @PrimaryKey val key: MessageReactionKey,
-    @Column("reacted_at")
-    val reactedAt: Instant = Instant.now(),
-    @Column("emoji")
+    val reacted_at: Instant = Instant.now(),
     val emoji: String,
 )
 

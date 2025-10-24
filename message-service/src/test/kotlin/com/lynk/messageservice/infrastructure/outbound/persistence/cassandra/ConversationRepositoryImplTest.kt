@@ -77,7 +77,7 @@ class ConversationRepositoryImplTest {
                 lastActivityTimestamp = now.minus(2, ChronoUnit.HOURS),
                 recipientId = recipientId2
             ),
-            conversationName = "Old Convo",
+            conversation_name = "Old Convo",
             lastMessagePreview = "Old message"
         )
         reactiveCassandraTemplate.insert(oldConversation).block()
@@ -133,7 +133,7 @@ class ConversationRepositoryImplTest {
                 lastActivityTimestamp = boundaryTime,
                 recipientId = recipientId1
             ),
-            conversationName = "Boundary Convo",
+            conversation_name = "Boundary Convo",
             lastMessagePreview = "On the edge"
         )
         reactiveCassandraTemplate.insert(conversationOnBoundary).block()
@@ -162,7 +162,7 @@ class ConversationRepositoryImplTest {
                 lastActivityTimestamp = now.minus(2, ChronoUnit.HOURS),
                 recipientId = recipientId2
             ),
-            conversationName = "Old Convo",
+            conversation_name = "Old Convo",
             lastMessagePreview = "Old message"
         )
         reactiveCassandraTemplate.insert(oldConversation).block()

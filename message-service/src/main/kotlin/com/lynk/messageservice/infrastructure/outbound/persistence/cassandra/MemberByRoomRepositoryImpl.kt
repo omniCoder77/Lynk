@@ -33,10 +33,10 @@ class MemberByRoomRepositoryImpl(
             memberByRoomKey = MemberByRoomKey(
                 roomId = roomId, memberId = memberId
             ),
-            displayName = displayName,
+            display_name = displayName,
             description = description,
             role = role.name,
-            joinedAt = Instant.now()
+            joined_at = Instant.now()
         )
         return reactiveCassandraTemplate.insert(memberByRoom).map { true }.doOnSuccess {
             evictCaches(roomId, memberId)
@@ -54,9 +54,9 @@ class MemberByRoomRepositoryImpl(
                         val updatedMember = MemberByRoom(
                             memberByRoomKey = MemberByRoomKey(roomId = roomId, memberId = memberToUpdate.memberId),
                             description = description ?: memberToUpdate.description,
-                            displayName = displayName ?: memberToUpdate.displayName,
+                            display_name = displayName ?: memberToUpdate.displayName,
                             role = memberToUpdate.role.name,
-                            joinedAt = memberToUpdate.joinedAt
+                            joined_at = memberToUpdate.joinedAt
                         )
                         reactiveCassandraTemplate.insert(updatedMember)
                             .map { it.memberByRoomKey.memberId }

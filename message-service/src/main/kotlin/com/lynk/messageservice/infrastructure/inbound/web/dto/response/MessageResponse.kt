@@ -17,10 +17,10 @@ fun RoomMessage.toResponse(): MessageResponse {
     return MessageResponse(
         messageId = this.key.messageId,
         roomId = this.key.roomId,
-        senderId = this.senderId,
+        senderId = this.sender_id,
         content = this.content,
         timestamp = this.key.timestamp,
-        replyToMessageId = this.replyToMessageId,
+        replyToMessageId = this.reply_to_message_id,
         reactions = this.reactions
     )
 }

@@ -12,6 +12,7 @@ build/
 .project
 .settings
 .springBeans
+src/main/kotlin/com/lynk/authservice/Helper.kt
 .sts4-cache
 bin/
 !**/src/main/**/bin/

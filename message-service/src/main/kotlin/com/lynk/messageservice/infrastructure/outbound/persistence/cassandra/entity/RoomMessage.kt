@@ -16,13 +16,9 @@ import java.util.UUID
 @Table("room_messages")
 data class RoomMessage(
     @PrimaryKey val key: RoomMessageKey,
-    @Column("sender_id")
-    val senderId: UUID,
-    @Column("content")
+    val sender_id: UUID,
     val content: String,
-    @Column("reply_to_message_id")
-    val replyToMessageId: UUID? = null,
-    @Column("reactions")
+    val reply_to_message_id: UUID? = null,
     val reactions: Map<String, Int> = emptyMap(),
 )
 

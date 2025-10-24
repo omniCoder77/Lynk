@@ -16,21 +16,17 @@ import java.util.*
 @Table("member_by_room")
 data class MemberByRoom(
     @PrimaryKey val memberByRoomKey: MemberByRoomKey,
-    @Column("description")
     val description: String? = null,
-    @Column("display_name")
-    val displayName: String,
-    @Column("role")
+    val display_name: String,
     val role: String,
-    @Column("joined_at")
-    val joinedAt: Instant,
+    val joined_at: Instant,
 ): Serializable {
     fun toDomain() = RoomMember(
         memberId = memberByRoomKey.memberId,
         roomId = memberByRoomKey.roomId,
-        joinedAt = joinedAt,
+        joinedAt = joined_at,
         description = description,
-        displayName = displayName,
+        displayName = display_name,
         role = RoomRole.valueOf(role)
     )
 }

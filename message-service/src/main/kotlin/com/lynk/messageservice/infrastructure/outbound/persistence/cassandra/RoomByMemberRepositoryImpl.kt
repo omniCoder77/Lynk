@@ -20,8 +20,7 @@ class RoomByMemberRepositoryImpl(private val reactiveCassandraTemplate: Reactive
     override fun createRoomByMember(memberId: UUID, roomId: UUID, name: String, avatarExtension: String?): Mono<UUID> {
         val roomByMember = RoomByMember(
             roomByMemberKey = RoomByMemberKey(memberId = memberId, roomId = roomId),
-            name = name,
-            avatarExtension = avatarExtension
+            name = name
         )
         return reactiveCassandraTemplate.insert(roomByMember).map { it.roomByMemberKey.roomId }
     }

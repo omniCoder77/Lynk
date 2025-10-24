@@ -48,7 +48,7 @@ class ConversationMessageRepositoryImpl(private val reactiveCassandraTemplate: R
         val conversationMessageEntity = ConversationMessageEntity(
             key = MessageKey(
                 conversationId = conversationId, bucket = bucket, messageTimestamp = timestamp
-            ), senderId = UUID.fromString(senderId), content = messageContent
+            ), sender_id = UUID.fromString(senderId), content = messageContent
         )
 
         return reactiveCassandraTemplate.insert(conversationMessageEntity).map { true }

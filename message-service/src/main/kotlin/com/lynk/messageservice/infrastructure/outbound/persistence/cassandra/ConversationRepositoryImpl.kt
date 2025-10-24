@@ -32,9 +32,9 @@ class ConversationRepositoryImpl(private val reactiveCassandraTemplate: Reactive
 
     override fun store(message: String, senderId: String, recipientId: UUID): Mono<Boolean> {
         val conversationEntity = ConversationEntity(
-            key = ConversationKey(userId = UUID.fromString(senderId), lastActivityTimestamp = Instant.now(), recipientId = recipientId),
-            conversationName = "Room",
-            lastMessagePreview = message
+            key = ConversationKey(userId = UUID.fromString(senderId), recipientId = recipientId),
+            conversation_name = "Room",
+            lastActivityTimestamp = Instant.now()
         )
 
         return reactiveCassandraTemplate.insert(conversationEntity).map { true }

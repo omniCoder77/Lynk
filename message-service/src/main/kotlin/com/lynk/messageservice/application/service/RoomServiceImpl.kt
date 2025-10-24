@@ -94,7 +94,7 @@ class RoomServiceImpl(
                         roomId = roomId,
                         memberId = memberId,
                         role = role,
-                        displayName = it.displayName,
+                        displayName = it.display_name,
                         description = it.description,
                     )
                 }
@@ -114,7 +114,7 @@ class RoomServiceImpl(
         val roomMessage = RoomMessage(
             key = RoomMessageKey(
                 roomId = roomId, timestamp = timestamp, messageId = messageId
-            ), senderId = senderId, content = content, replyToMessageId = replyToMessageId
+            ), sender_id = senderId, content = content, reply_to_message_id = replyToMessageId
         )
 
         return memberByRoomRepository.getMemberById(senderId, roomId)
@@ -129,7 +129,7 @@ class RoomServiceImpl(
 
                             reactiveRedisTemplate.convertAndSend(channel, payload)
                                 .doOnSuccess { logger.info("Published message to Redis channel: $channel") }
-                                .then(dispatchOfflineNotifications(roomMessage, senderInfo.displayName))
+                                .then(dispatchOfflineNotifications(roomMessage, senderInfo.display_name))
                                 .then(Mono.just(true))
                         } else {
                             Mono.just(false)
@@ -139,7 +139,7 @@ class RoomServiceImpl(
     }
 
     private fun dispatchOfflineNotifications(message: RoomMessage, senderName: String): Mono<Void> {
-        return getRoomMembers(message.key.roomId).filter { it.memberId != message.senderId }.flatMap { member ->
+        return getRoomMembers(message.key.roomId).filter { it.memberId != message.sender_id }.flatMap { member ->
             presenceService.isUserOnline(member.memberId).flatMap { isOnline ->
                 if (!isOnline) {
                     logger.info("User ${member.memberId} is offline. Sending FCM notification.")

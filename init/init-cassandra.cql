@@ -1,4 +1,4 @@
-CREATE KEYSPACE IF NOT EXISTS message_keyspace WITH replication = {'class': 'NetworkTopologyStrategy', 'datacenter1': 3}
+CREATE KEYSPACE IF NOT EXISTS message_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}
                                                 AND durable_writes = true;
 USE message_keyspace;
 
