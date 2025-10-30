@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Service UI</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; display: flex; height: 100vh; color: #333; }
+        .sidebar { width: 20%; background-color: #fff; border-right: 1px solid #ddd; display: flex; flex-direction: column; min-width: 200px; }
+        .main-content { flex-grow: 1; display: flex; }
+        .chat-area { flex-grow: 1; display: flex; flex-direction: column; background-color: #e5ddd5; }
+        .members-area { width: 20%; background-color: #fff; border-left: 1px solid #ddd; display: flex; flex-direction: column; min-width: 200px;}
+        .header { padding: 15px; background-color: #007bff; color: white; font-size: 1.2em; text-align: center; }
+        .room-list, .member-list { list-style-type: none; margin: 0; padding: 0; overflow-y: auto; flex-grow: 1;}
+        .room-list li, .member-list li { padding: 15px; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
+        .room-list li:hover, .room-list li.active { background-color: #f0f0f0; }
+        .member-list li .role { font-size: 0.8em; color: #888; }
+        .create-room-form, .add-member-form { padding: 15px; border-top: 1px solid #ddd; }
+        #roomNameInput, #memberIdInput { width: calc(100% - 22px); padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        #createRoomBtn, #addMemberBtn { width: 100%; padding: 10px; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        #createRoomBtn { background-color: #28a745; }
+        #addMemberBtn { background-color: #17a2b8; }
+        .messages { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column-reverse; }
+        .message { background-color: #fff; padding: 10px 15px; border-radius: 15px; margin-bottom: 10px; max-width: 60%; align-self: flex-start; word-wrap: break-word; }
+        .message.sent { background-color: #dcf8c6; align-self: flex-end; }
+        .message .sender { font-weight: bold; font-size: 0.8em; color: #555; margin-bottom: 4px; }
+        .message-input { display: flex; padding: 10px; background-color: #f0f0f0; }
+        #messageInput { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 20px; margin-right: 10px; }
+        #sendMessageBtn { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 20px; cursor: pointer; }
+        #current-room-header { padding: 15px; background-color: #f5f5f5; border-bottom: 1px solid #ddd; text-align: center; font-weight: bold; }
+        .hidden { display: none; }
+        .placeholder { text-align: center; padding: 50px; color: #777; font-size: 1.2em; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="header">Rooms</div>
+    <div class="create-room-form">
+        <input type="text" id="roomNameInput" placeholder="New room name...">
+        <button id="createRoomBtn">Create Room</button>
+    </div>
+    <ul id="roomList" class="room-list">
+        <!-- Rooms will be loaded here -->
+    </ul>
+</div>
+
+<div class="main-content">
+    <div class="chat-area">
+        <div id="current-room-header">Select a room to start chatting</div>
+        <div class="messages" id="messagesContainer">
+            <div class="placeholder" id="chatPlaceholder">Messages will appear here</div>
+        </div>
+        <div class="message-input hidden" id="messageForm">
+            <input type="text" id="messageInput" placeholder="Type a message...">
+            <button id="sendMessageBtn">Send</button>
+        </div>
+    </div>
+
+    <div class="members-area hidden" id="membersArea">
+        <div class="header">Members</div>
+        <div class="add-member-form">
+            <input type="text" id="memberIdInput" placeholder="User ID to add...">
+            <button id="addMemberBtn">Add Member</button>
+        </div>
+        <ul id="memberList" class="member-list">
+            <!-- Members will be loaded here -->
+        </ul>
+    </div>
+</div>
+
+
+<script>
+    const API_BASE_URL = 'http://localhost:8082/api/v1';
+    const WEBSOCKET_URL = 'ws://localhost:8082/ws/chat';
+    // Your provided valid access token
+    const ACCESS_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJwaG9uZV9udW1iZXIiOiIrMTc3NTMwNjk3NDMiLCJzdWIiOiI3YTYxMDY1NC1iYTEyLTQ0NmUtODJiNC1jNjNiMTcxZWY1ZGYiLCJpYXQiOjE3NjE1MDY5MDF9.XuNIYRRJo3gLp1PlplckU8aOX7ccfk9GaZalLPH4AWc';
+    const myUserId = JSON.parse(atob(ACCESS_TOKEN.split('.')[1])).sub;
+
+    // UI Elements
+    const roomList = document.getElementById('roomList');
+    const messagesContainer = document.getElementById('messagesContainer');
+    const messageForm = document.getElementById('messageForm');
+    const createRoomBtn = document.getElementById('createRoomBtn');
+    const sendMessageBtn = document.getElementById('sendMessageBtn');
+    const roomNameInput = document.getElementById('roomNameInput');
+    const messageInput = document.getElementById('messageInput');
+    const currentRoomHeader = document.getElementById('current-room-header');
+    const membersArea = document.getElementById('membersArea');
+    const memberList = document.getElementById('memberList');
+    const addMemberBtn = document.getElementById('addMemberBtn');
+    const memberIdInput = document.getElementById('memberIdInput');
+    const chatPlaceholder = document.getElementById('chatPlaceholder');
+
+    let currentRoomId = null;
+    let socket;
+
+    const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${ACCESS_TOKEN}`
+    };
+
+    // --- WebSocket Logic ---
+    function connectWebSocket() {
+        console.log("Attempting to connect to WebSocket...");
+        const wsUrlWithToken = `${WEBSOCKET_URL}?token=${ACCESS_TOKEN}`; // Pass token as query param
+        socket = new WebSocket(wsUrlWithToken);
+
+        socket.onopen = () => console.log("WebSocket connected!");
+        socket.onmessage = (event) => {
+            console.log("WebSocket message received:", event.data);
+            const message = JSON.parse(event.data);
+            if (message.roomId === currentRoomId) {
+                fetchMessages(currentRoomId);
+            }
+        };
+        socket.onclose = () => console.log("WebSocket disconnected.");
+        socket.onerror = (error) => console.error("WebSocket error:", error);
+    }
+
+    // --- API Functions ---
+    async function fetchMyRooms() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/rooms`, { headers });
+            if (!response.ok) throw new Error('Failed to fetch rooms.');
+            const rooms = await response.json();
+
+            roomList.innerHTML = ''; // Clear list
+            if (rooms.length === 0) {
+                roomList.innerHTML = '<li style="cursor:default; text-align:center; color:#777;">No rooms found. Create one!</li>';
+            } else {
+                rooms.forEach(room => {
+                    const li = document.createElement('li');
+                    li.textContent = room.name;
+                    li.dataset.roomId = room.id;
+                    li.dataset.roomName = room.name;
+                    li.onclick = (e) => selectRoom(e.target.dataset.roomId, e.target.dataset.roomName);
+                    roomList.appendChild(li);
+                });
+            }
+        } catch (error) {
+            console.error("Error fetching rooms:", error);
+            roomList.innerHTML = '<li>Could not load rooms.</li>';
+        }
+    }
+
+    async function createRoom() {
+        const name = roomNameInput.value.trim();
+        if (!name) return alert('Room name cannot be empty.');
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/rooms`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ name, description: "", initialMemberIds: [] })
+            });
+            if (!response.ok) throw new Error(`Error creating room: ${response.statusText}`);
+
+            await response.json();
+            roomNameInput.value = '';
+            await fetchMyRooms(); // Refresh the entire room list
+        } catch (error) {
+            console.error(error);
+            alert(error.message);
+        }
+    }
+
+    async function fetchMessages(roomId) {
+        if (!roomId) return;
+        try {
+            const response = await fetch(`${API_BASE_URL}/rooms/${roomId}/messages`, { headers });
+            if (!response.ok) throw new Error('Failed to fetch messages.');
+
+            const messages = await response.json();
+            messagesContainer.innerHTML = '';
+            if (messages.length > 0) {
+                chatPlaceholder.classList.add('hidden');
+                messages.reverse().forEach(msg => {
+                    const msgDiv = document.createElement('div');
+                    msgDiv.classList.add('message');
+                    if (msg.senderId === myUserId) {
+                        msgDiv.classList.add('sent');
+                    }
+                    // A real app would fetch usernames, here we just show the ID.
+                    msgDiv.innerHTML = `<div class="sender">${msg.senderId.split('-')[0]}...</div><div>${msg.content}</div>`;
+                    messagesContainer.appendChild(msgDiv);
+                });
+            } else {
+                chatPlaceholder.textContent = 'No messages yet. Be the first to say something!';
+                chatPlaceholder.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error(error);
+            messagesContainer.innerHTML = '<div class="placeholder">Could not load messages.</div>';
+        }
+    }
+
+    async function sendMessage() {
+        const content = messageInput.value.trim();
+        if (!content || !currentRoomId) return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/rooms/${currentRoomId}/messages`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ content })
+            });
+
+            if (response.status !== 201) throw new Error('Failed to send message.');
+
+            messageInput.value = '';
+            // Don't re-fetch here, let the websocket handle the update for a true real-time feel
+            // fetchMessages(currentRoomId);
+        } catch (error) {
+            console.error(error);
+            alert(error.message);
+        }
+    }
+
+    async function fetchRoomMembers(roomId) {
+        if (!roomId) return;
+        try {
+            const response = await fetch(`${API_BASE_URL}/rooms/${roomId}/members`, { headers });
+            if (!response.ok) throw new Error('Failed to fetch members.');
+            const members = await response.json();
+
+            memberList.innerHTML = '';
+            members.forEach(member => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div>${member.displayName} ${member.memberId === myUserId ? '(You)' : ''}</div>
+                    <div class="role">${member.role}</div>
+                `;
+                memberList.appendChild(li);
+            });
+
+        } catch (error) {
+            console.error("Error fetching members:", error);
+            memberList.innerHTML = '<li>Could not load members.</li>';
+        }
+    }
+
+    async function addMember() {
+        const memberId = memberIdInput.value.trim();
+        if (!memberId || !currentRoomId) return alert('Member ID cannot be empty.');
+        // Basic UUID validation
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(memberId)) return alert('Please enter a valid UUID for the Member ID.');
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/rooms/${currentRoomId}/members`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ memberId, role: "MEMBER" })
+            });
+
+            if (!response.ok) throw new Error(`Failed to add member: ${response.statusText}`);
+
+            memberIdInput.value = '';
+            await fetchRoomMembers(currentRoomId); // Refresh member list
+        } catch (error) {
+            console.error(error);
+            alert(error.message);
+        }
+    }
+
+
+    // --- UI Logic ---
+    function selectRoom(roomId, roomName) {
+        currentRoomId = roomId;
+        currentRoomHeader.textContent = `Room: ${roomName}`;
+        messageForm.classList.remove('hidden');
+        membersArea.classList.remove('hidden');
+
+        // Highlight active room
+        document.querySelectorAll('#roomList li').forEach(li => {
+            if (li.dataset.roomId === roomId) {
+                li.classList.add('active');
+            } else {
+                li.classList.remove('active');
+            }
+        });
+
+        fetchMessages(roomId);
+        fetchRoomMembers(roomId);
+    }
+
+    // --- Event Listeners ---
+    createRoomBtn.addEventListener('click', createRoom);
+    sendMessageBtn.addEventListener('click', sendMessage);
+    addMemberBtn.addEventListener('click', addMember);
+
+    messageInput.addEventListener('keyup', (event) => {
+        if (event.key === 'Enter') sendMessage();
+    });
+    roomNameInput.addEventListener('keyup', (event) => {
+        if (event.key === 'Enter') createRoom();
+    });
+    memberIdInput.addEventListener('keyup', (event) => {
+        if (event.key === 'Enter') addMember();
+    });
+
+
+    // --- Initial Load ---
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchMyRooms();
+        // The backend `JwtAuthenticationFilter` reads the token from the Authorization header for HTTP requests.
+        // For WebSockets, the standard protocol doesn't support headers. A common workaround is to pass the
+        // token as a query parameter on connection, which requires the backend to be configured to read it.
+        // Since that's not implemented, we will skip the websocket connection for now to avoid auth errors.
+        // connectWebSocket();
+        console.log("UI Loaded. Your user ID is:", myUserId);
+    });
+
+</script>
+</body>
+</html>

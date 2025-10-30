@@ -1,0 +1,5 @@
+*.jks
+.idea
+Lynk.iml
+.env
+*.p12
