@@ -1,0 +1,7 @@
+src/test/*
+.gradle
+.kotlin
+.gitattributes
+.gitignore
+auth-service.iml
+HELP.md

@@ -1,0 +1,7 @@
+*.jks
+.idea
+Lynk.iml
+.env
+*.p12
+ssl/*
+.docker_secrets

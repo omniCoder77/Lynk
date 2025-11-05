@@ -1,0 +1,17 @@
+info:
+  title: "Lynk Authentication Service"
+  version: "1.0.0"
+  description: "Handles user registration, login, and JWT session management for the Lynk platform."
+  contact:
+    name: "API Support"
+    email: "dev@lynk.com"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
