@@ -48,14 +48,13 @@ services:
     container_name: kafka
     ports:
       - "9092:9092"
-      - "9094:9094"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_LISTENERS: INTERNAL://0.0.0.0:9094,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9094,EXTERNAL://kafka:9092
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:SSL
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:SASL_SSL
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
 
@@ -75,13 +74,19 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
+      # SASL settings
+      KAFKA_OPTS: "-Djava.security.auth.login.config=//etc/kafka/secrets/kafka_jaas.conf"
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: SCRAM-SHA-512
+      KAFKA_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
+
     volumes:
       - ./ssl/kafka-creds/kafka.keystore.pkcs12:/etc/kafka/secrets/kafka.keystore.pkcs12
       - ./ssl/kafka-creds/kafka.truststore.jks:/etc/kafka/secrets/kafka.truststore.jks
+      - ./ssl/kafka-creds/kafka_jaas.conf:/etc/kafka/secrets/kafka_jaas.conf
       - kafka_data:/var/lib/kafka/data
 
     healthcheck:
-      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1"]
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9094 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5

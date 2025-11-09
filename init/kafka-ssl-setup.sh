@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-FILE_PATH="../ssl"
+FILE_PATH="ssl"
 BROKER_CREDS_DIR="kafka-creds"
 PASSWORD="kafka-setup"
 CA_CNF_PATH="$FILE_PATH/ca.cnf"
