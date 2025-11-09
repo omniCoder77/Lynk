@@ -49,7 +49,7 @@ class NotificationService(
                 body = event.payload.content,
                 senderPhoneNumber = event.payload.senderPhoneNumber,
                 messageId = event.messageId.toString(),
-                messageType = MessageType.valueOf(event.payload.messageType)
+                messageType = MessageType.TEXT
             )
             return fCMChatService.sendRoomNotification(req)
     }

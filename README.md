@@ -130,8 +130,10 @@ keystore file is not found at the specified location, the application will gener
 
 6. **Initialize users in kafka**
     ```bash
-   docker exec kafka /usr/bin/kafka-configs --bootstrap-server localhost:9094 --alter --add-config 'SCRAM-SHA-256=[iterations=8192,password=message-service],SCRAM-SHA-512=[password=alice-secret]' --entity-type users --entity-name messageService
-   docker exec kafka /usr/bin/kafka-configs --bootstrap-server localhost:9094 --alter --add-config 'SCRAM-SHA-256=[iterations=8192,password=notification-service],SCRAM-SHA-512=[password=alice-secret]' --entity-type users --entity-name notificationService
+   docker exec kafka /usr/bin/kafka-configs --bootstrap-server localhost:9094 --alter --add-config 'SCRAM-SHA-512=[iterations=8192,password=message-service],SCRAM-SHA-512=[password=message-service]' --entity-type users --entity-name messageService
+   docker exec kafka /usr/bin/kafka-configs --bootstrap-server localhost:9094 --alter --add-config 'SCRAM-SHA-512=[iterations=8192,password=notification-service],SCRAM-SHA-512=[password=notification-service]' --entity-type users --entity-name notificationService
+   docker exec kafka /usr/bin/kafka-acls --bootstrap-server localhost:9094 --add --allow-principal User:messageService --operation Write --topic room.message --topic conversation.message --topic user.created
+   docker exec kafka /usr/bin/kafka-acls --bootstrap-server localhost:9094 --add --allow-principal User:notificationService --operation Read --topic room.message --topic conversation.message --topic user.created
     ```
 
 7. **Start the Auth Service:**

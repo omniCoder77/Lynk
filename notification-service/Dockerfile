@@ -32,6 +32,7 @@ WORKDIR /app
 COPY keystore.p12 ./
 COPY kafka.keystore.pkcs12 ./
 COPY kafka.truststore.jks ./
+COPY lynk-fcm.json ./
 
 COPY --from=builder /app/build/libs/*.jar app.jar
 

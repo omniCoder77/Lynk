@@ -7,8 +7,7 @@ data class RoomMessagePayload(
     val content: String,
     val fileUrls: List<String>? = null,
     val roomId: UUID,
-    val senderPhoneNumber: String,
-    val messageType: String
+    val senderPhoneNumber: String
 )
 
 data class RoomMessageEvent(
