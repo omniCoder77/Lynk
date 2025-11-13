@@ -116,7 +116,7 @@ keystore file is not found at the specified location, the application will gener
 4. **Create Certificates**
     ```bash
    ./init/generate_ca.sh
-    ./init/kafka-ssl-setup.sh
+    ./init/generate_kafka_certs.sh
     ```
 
 5. **Initialize the databases**

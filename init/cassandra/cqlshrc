@@ -1,0 +1,4 @@
+[ssl]
+certfile = /etc/cassandra/conf/cassandra.crt
+validate = true
+version = TLSv1.3

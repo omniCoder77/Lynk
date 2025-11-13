@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:latest
+    image: postgres:18-alpine
     container_name: postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -15,20 +15,33 @@ services:
       retries: 5
     volumes:
       - ./init/init-postgresql.sql:/docker-entrypoint-initdb.d/init-postgresql.sql
-      - postgres_data:/var/lib/postgresql
+      - postgres_data:/var/lib/postgresql/data
+      - ./init/postgres/postgres.conf:/etc/postgresql/postgresql.conf
+      - ./init/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./init/postgres/postgres.crt:/var/lib/postgresql/data/server.crt:ro
+      - ./init/postgres/postgres.key:/var/lib/postgresql/data/server.key:ro
+    command: [ "postgres",
+               "-c", "config_file=/etc/postgresql/postgresql.conf",
+               "-c", "hba_file=/etc/postgresql/pg_hba.conf" ]
 
   cassandra:
-    image: scylladb/scylla
+    image: cassandra:5.0.6
     container_name: cassandra
     ports:
       - "9042:9042"
     healthcheck:
-      test: [ "CMD", "cqlsh", "-e", "describe keyspaces" ]
+      test: [ "CMD", "cqlsh", "--ssl", "127.0.0.1", "-u", "cassandra", "-p", "cassandra", "-e", "describe keyspaces" ]
       interval: 10s
       timeout: 5s
       retries: 5
     volumes:
       - cassandra_data:/var/lib/cassandra
+      - ./init/cassandra/cassandra.yaml:/etc/cassandra/cassandra.yaml
+      - ./init/cassandra/cassandra.keystore.pkcs12:/etc/cassandra/conf/cassandra.keystore.pkcs12
+      - ./init/cassandra/cqlshrc:/root/.cassandra/cqlshrc
+      - ./init/cassandra/cassandra.truststore.jks:/etc/cassandra/conf/cassandra.truststore.jks
+      - ./init/cassandra/cassandra.crt:/etc/cassandra/conf/cassandra.crt
+      - ./init/ssl/ca.crt:/etc/cassandra/conf/ca.crt
 
   redis:
     healthcheck:
@@ -36,7 +49,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    image: redis:latest
+    image: redis:8.4-rc1-alpine3.22
     container_name: redis
     ports:
       - "6379:6379"
@@ -75,7 +88,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
       # SASL settings
-      KAFKA_OPTS: "-Djava.security.auth.login.config=//etc/kafka/secrets/kafka_jaas.conf"
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/secrets/kafka_jaas.conf"
       KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: SCRAM-SHA-512
       KAFKA_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
 
@@ -84,14 +97,12 @@ services:
       KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
 
     volumes:
-      - ./ssl/kafka-creds/kafka.keystore.pkcs12:/etc/kafka/secrets/kafka.keystore.pkcs12
-      - ./ssl/kafka-creds/kafka.truststore.jks:/etc/kafka/secrets/kafka.truststore.jks
-      - ./ssl/kafka-creds/client.properties:/client.properties
-      - ./ssl/kafka-creds/kafka_jaas.conf:/etc/kafka/secrets/kafka_jaas.conf
       - kafka_data:/var/lib/kafka/data
+      - ./init/kafka/:/etc/kafka/secrets
+      - ./init/kafka/kafka_jaas.conf:/etc/kafka/secrets/kafka_jaas.conf
 
     healthcheck:
-      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9094 || exit 1"]
+      test: [ "CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9094 || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -148,6 +159,7 @@ services:
       KAFKA_SSL_KEY_PASSWORD: ${KAFKA_SSL_PASSWORD}
       KAFKA_HOST: kafka
       REDIS_PORT: 6379
+      CASSANDRA_PASSWORD: ${CASSANDRA_PASSWORD}
     ports:
       - "8082:8082"
 

@@ -1,5 +1,10 @@
 CREATE KEYSPACE IF NOT EXISTS message_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}
-                                                AND durable_writes = true;
+AND durable_writes = true;
+
+CREATE ROLE message_user WITH PASSWORD = 'message-user-password' AND LOGIN = true;
+GRANT ALL PERMISSIONS ON KEYSPACE message_keyspace TO message_user;
+GRANT SELECT, MODIFY ON KEYSPACE my_keyspace TO message_user;
+
 USE message_keyspace;
 
 CREATE TABLE IF NOT EXISTS conversation
