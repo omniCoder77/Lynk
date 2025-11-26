@@ -34,7 +34,7 @@ class KafkaMessageConsumer(
                 record.offset()
             )
 
-            Mono.fromRunnable<Void> {
+            Mono.fromRunnable<Unit> {
                 logger.trace("Starting async processing for conversation message from {}", event.senderId)
             }.subscribeOn(Schedulers.boundedElastic()).subscribe({
                 acknowledgment.acknowledge()
