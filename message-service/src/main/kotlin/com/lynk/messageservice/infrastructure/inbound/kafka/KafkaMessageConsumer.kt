@@ -1,8 +1,6 @@
 package com.lynk.messageservice.infrastructure.inbound.kafka
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.lynk.messageservice.domain.port.driven.ConversationService
-import com.lynk.messageservice.domain.port.driven.RoomService
 import com.lynk.messageservice.infrastructure.outbound.kafka.dto.ConversationMessageEvent
 import com.lynk.messageservice.infrastructure.outbound.kafka.dto.RoomMessageEvent
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -15,7 +13,6 @@ import reactor.core.scheduler.Schedulers
 
 @Component
 class KafkaMessageConsumer(
-    private val roomService: RoomService, private val conversationService: ConversationService
 ) {
 
     private val logger = LoggerFactory.getLogger(this::class.java)
@@ -86,7 +83,7 @@ class KafkaMessageConsumer(
         }
 
         if (events.isNotEmpty()) {
-            Mono.fromRunnable<Void> {
+            Mono.fromRunnable<Unit> {
                 logger.info("Bulk processing ${events.size} room messages.")
             }.subscribeOn(Schedulers.boundedElastic()).subscribe {
                 acknowledgment.acknowledge()
