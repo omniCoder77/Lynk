@@ -1,146 +1,223 @@
-## Overview
+# Lynk | Reactive Communication Platform
 
-The Lynk Auth Service is a reactive, secure, and scalable microservice responsible for handling all aspects of user
-authentication and authorization within the Lynk platform. It provides a centralized system for user registration,
-login, multi-factor authentication (MFA), and token management using JSON Web Tokens (JWT).
+![Java](https://img.shields.io/badge/Java-17-orange?style=flat-square&logo=java)
+![Kotlin](https://img.shields.io/badge/Kotlin-1.9-purple?style=flat-square&logo=kotlin)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2-green?style=flat-square&logo=spring)
+![Architecture](https://img.shields.io/badge/Architecture-Reactive%20Microservices-blue?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-lightgrey?style=flat-square)
 
-Built with Kotlin and Spring WebFlux, it leverages a non-blocking, event-driven architecture to ensure high performance
-and efficient resource utilization, making it suitable for modern, high-concurrency applications.
+**Lynk** is a high-performance, distributed real-time communication platform engineered on the reactive principles of **Spring WebFlux**. Designed for massive concurrency and low-latency throughput, it leverages a non-blocking event-loop architecture to handle thousands of concurrent connections with minimal resource overhead.
 
-## Features
-
-- **User Registration:** Secure sign-up flow using phone numbers with One-Time Password (OTP) verification via SMS.
-- **User Login:**
-    - Standard login with a registered phone number.
-    - Support for Time-based One-Time Password (TOTP) for users with MFA enabled.
-- **JWT-Based Authentication:**
-    - Generates secure, signed Access Tokens and Refresh Tokens upon successful authentication.
-    - Uses a robust KeyStore mechanism to manage signing keys securely.
-- **Multi-Factor Authentication (MFA):**
-    - Optional TOTP-based MFA can be enabled during registration.
-    - Generates a QR code for easy setup with authenticator apps like Google Authenticator or Authy.
-- **Token Management:**
-    - **Token Refresh:** An endpoint to issue a new access token using a valid refresh token.
-    - **Logout:** A secure logout mechanism that invalidates the user's current token.
-- **Rate Limiting:** Protects critical endpoints (`/login`, `/register`) against brute-force and denial-of-service
-  attacks using a Redis-based algorithm.
-- **Reactive Architecture:** Fully non-blocking stack from the web layer (WebFlux) to the database (R2DBC), ensuring
-  optimal performance and scalability.
-
-## Technology Stack
-
-| Category                    | Technology                                                                                 |
-|-----------------------------|--------------------------------------------------------------------------------------------|
-| **Language**                | Kotlin                                                                                     |
-| **Framework**               | Spring Boot 3 & Spring WebFlux (Reactive)                                                  |
-| **Security**                | Spring Security (Reactive)                                                                 |
-| **Primary Datastore**       | PostgreSQL (with R2DBC for reactive access)                                                |
-| **Caching & Rate Limiting** | Redis                                                                                      |
-| **Authentication**          | JSON Web Tokens (JWT) via `jjwt` library                                                   |
-| **SMS Gateway**             | Twilio                                                                                     |
-| **MFA / TOTP**              | `googleauth` for TOTP validation, `zxing` for QR code generation                           |
-| **Testing**                 | JUnit 5, Mockito, WebTestClient, Testcontainers (for PostgreSQL & Redis integration tests) |
-| **Build Tool**              | Gradle                                                                                     |
+The system employs an event-driven architecture using **Apache Kafka** for asynchronous decoupling, **Cassandra** for write-heavy chat logs, and **Redis** for high-speed caching and probabilistic data structures.
 
 ---
 
-## API Documentation
+## 🏗 High-Level Architecture
 
-Explore the Lynk Auth Service API endpoints, methods, and examples directly through our interactive Postman
-documentation:
+The platform follows a domain-driven microservices architecture. Communication between the client and services utilizes HTTP/2 and WebSockets, while inter-service communication is handled asynchronously via Kafka.
 
-[![Run in Postman](https://run.pstmn.io/button.svg)](https://www.postman.com/descent-module-engineer-21435196/workspace/auth-service-api-documentation/collection/38027824-a62b3f10-24a4-4bcc-89f5-dc777eb81058?action=share&creator=38027824&active-environment=38027824-29bdf959-46b1-4c93-aeb5-8850b1c7f3b2)
-*Or view the full interactive documentation here:*
-[Lynk Auth Service API Documentation](https://www.postman.com/descent-module-engineer-21435196/workspace/auth-service-api-documentation/collection/38027824-a62b3f10-24a4-4bcc-89f5-dc777eb81058?action=share&creator=38027824&active-environment=38027824-29bdf959-46b1-4c93-aeb5-8850b1c7f3b2)
+```mermaid
+flowchart LR
+    linkStyle default interpolation basis,stroke-width:2px,fill:none,stroke:#B0B0B0
+
+    subgraph UserZone [User Interaction]
+        direction TB
+        CLIENT([<br/>fa:fa-user<br/><b>User / Client</b><br/>])
+    end
+
+    subgraph Services [Microservices Layer]
+        direction TB
+        S_AUTH(fa:fa-shield-alt <b>Auth Service</b><br/>Spring WebFlux)
+        S_MSG(fa:fa-comments <b>Message Service</b><br/>Spring WebFlux)
+        S_NOTIF(fa:fa-bell <b>Notification Service</b><br/>Spring WebFlux)
+        S_MEDIA(fa:fa-images <b>Media Service</b><br/>Spring WebFlux)
+    end
+
+    subgraph Messaging [Event Bus]
+        direction TB
+        M_KAFKA{{fa:fa-random <b>Kafka Topics</b><br/>Event Backbone}}
+    end
+
+    subgraph DataInfra [Data & Infrastructure]
+        direction TB
+        D_REDIS[(fa:fa-memory <b>Redis Stack</b><br/>Cache / Rate Limit)]
+        D_PG[(fa:fa-database <b>PostgreSQL</b><br/>R2DBC)]
+        D_CASS[(fa:fa-layer-group <b>Cassandra</b><br/>Reactive)]
+    end
+
+    subgraph External [External Providers]
+        direction TB
+        E_TWILIO>fa:fa-mobile-alt <b>Twilio</b><br/>SMS Gateway]
+        E_FCM>fa:fa-paper-plane <b>FCM</b><br/>Push Gateway]
+        E_S3>fa:fa-cloud <b>AWS S3</b><br/>Object Storage]
+    end
+
+    CLIENT -.-o|1. Register / Login| S_AUTH
+    S_AUTH -->|User Data| D_PG
+    S_AUTH -->|OTP & Limits| D_REDIS
+    S_AUTH -->|OTP SMS| E_TWILIO
+    S_AUTH -.->|Pub: user.created| M_KAFKA
+
+    CLIENT <===>|2. Real-time WS| S_MSG
+    S_MSG -->|History / Members| D_CASS
+    S_MSG -->|Cuckoo / Cache| D_REDIS
+    S_MSG -.->|Pub: msg events| M_KAFKA
+
+    M_KAFKA -.->|Consume Events| S_NOTIF
+    S_NOTIF -->|Fetch Tokens| D_PG
+    S_NOTIF -->|Push Request| E_FCM
+    E_FCM -.->|Push Notification| CLIENT
+
+    CLIENT ===|3. Upload / Download| S_MEDIA
+    S_MEDIA -->|Persist| E_S3
+
+    classDef client fill:#FF6B6B,stroke:#c92a2a,stroke-width:2px,color:white,font-size:14px;
+    classDef service fill:#4D96FF,stroke:#0055AA,stroke-width:2px,color:white,rx:5,ry:5;
+    classDef db fill:#FFD93D,stroke:#d4a017,stroke-width:2px,color:#333;
+    classDef bus fill:#6BCB77,stroke:#2e8b57,stroke-width:2px,color:white;
+    classDef ext fill:#E0E0E0,stroke:#9E9E9E,stroke-width:2px,stroke-dasharray: 5 5,color:#333;
+    classDef sub fill:#F9F9F9,stroke:#EEEEEE,stroke-width:2px,color:#555,font-weight:bold;
+
+    class CLIENT client;
+    class S_AUTH,S_MSG,S_NOTIF,S_MEDIA service;
+    class D_PG,D_CASS,D_REDIS db;
+    class M_KAFKA bus;
+    class E_TWILIO,E_FCM,E_S3 ext;
+    class UserZone,Services,DataInfra,Messaging,External sub;
+```
 
 ---
 
-## Configuration
+## ⚡ Key Design Decisions
 
-The service requires the following environment variables to be configured:
+*   **Reactive Model (Project Reactor):** Chosen over the traditional thread-per-request model to handle high I/O wait times (DB, Network) without blocking threads, maximizing hardware utilization.
+*   **Cassandra for Chat Logs:** Utilizes a Wide-Column Store for its high write throughput and ability to model time-series data (chat history) efficiently using clustering keys.
+*   **Probabilistic Data Structures:** Implements **Redis Cuckoo Filters** for room name availability checks. This offers $O(1)$ space-efficient lookups, significantly reducing database hits during room creation.
+*   **Rate Limiting with Lua:** Atomic execution of rate-limiting logic server-side via Redis Lua scripts prevents race conditions in high-concurrency authentication scenarios.
+*   **Event Sourcing via Kafka:** Decouples the critical path (messaging) from side effects (notifications), ensuring that a slow push notification service never degrades the chat experience.
 
-### JWT Keystore Configuration
+---
 
-The service uses a Java KeyStore (`.p12` or `.jceks`) for securely managing the secret key used for signing JWTs. If the
-keystore file is not found at the specified location, the application will generate a new one automatically.
+## 🛠 Service Breakdown
 
-- `JWT_KEYSTORE_LOCATION`: Path to the keystore file (e.g., `/etc/secrets/jwtKeystore.p12`).
-- `JWT_KEYSTORE_PASSWORD`: The password for the keystore.
-- `JWT_KEY_ALIAS`: The alias for the key entry within the keystore (defaults to `jwtKey`).
-- `JWT_KEY_PASSWORD`: The password for the key itself.
+### 🛡 Auth Service (`auth-service`)
+The secure gateway for identity management.
+*   **Stateless Auth:** Issues Access and Refresh JWTs signed with RSA keys.
+*   **MFA Support:** Twilio integration for SMS OTP and TOTP (Google Authenticator) implementation.
+*   **Infrastructure:** PostgreSQL (R2DBC) for relational user data; Redis for ephemeral OTP storage and token blocklisting.
 
-### JWT Token Expiry
+### 💬 Message Service (`message-service`)
+The core WebSocket engine handling bi-directional data flow.
+*   **Protocol:** WebSocket over Reactor Netty.
+*   **Persistence:** Cassandra tables designed for queries like "Get last 50 messages in Room X".
+*   **Caching:** Redis stores active room members and user online status.
 
-- `JWT_TOKEN_ACCESS_TOKEN_EXPIRY`: Expiration time for access tokens in milliseconds.
-- `JWT_TOKEN_REFRESH_TOKEN_EXPIRY`: Expiration time for refresh tokens in milliseconds.
+### 🔔 Notification Service (`notification-service`)
+A dedicated consumer service for asynchronous alerts.
+*   **Pattern:** Consumes `conversation.message` and `room.message` topics.
+*   **Delivery:** Integrates with Firebase Cloud Messaging (FCM) for reliable delivery to mobile and web clients.
 
-### Twilio Configuration (for SMS)
+### 📂 Media Service (`media-service`)
+Handles binary data management.
+*   **Storage:** AWS S3 (via LocalStack for dev) for object storage.
+*   **Security:** Presigned URLs or proxied streams to ensure media is only accessible to authorized users.
 
-- `TWILIO_ACCOUNT_SID`: Your Twilio Account SID.
-- `TWILIO_AUTH_TOKEN`: Your Twilio Auth Token.
-- `TWILIO_PHONE_NUMBER`: The Twilio phone number used to send SMS.
+---
 
-### Other Configurations
+## 💻 Technology Stack
 
-- `ISSUER`: The issuer name used in the TOTP URI (e.g., "LynkApp").
-- `SPRING_R2DBC_URL`: R2DBC URL for the PostgreSQL database.
-- `SPRING_R2DBC_USERNAME`: Database username.
-- `SPRING_R2DBC_PASSWORD`: Database password.
-- `SPRING_DATA_REDIS_HOST`: Redis host.
-- `SPRING_DATA_REDIS_PORT`: Redis port.
+| Domain        | Tech                  | Rationale                                             |
+|:--------------|:----------------------|:------------------------------------------------------|
+| **Core**      | Kotlin, Spring Boot 3 | Null safety, coroutine support, and robust ecosystem. |
+| **Reactive**  | Spring WebFlux, R2DBC | Non-blocking I/O for high concurrency.                |
+| **Messaging** | Apache Kafka          | Durable event log for service decoupling.             |
+| **NoSQL**     | Cassandra             | Linear scalability for write-intensive chat history.  |
+| **Cache**     | Redis Stack           | Low latency caching and Cuckoo filters.               |
+| **Cloud**     | AWS S3, FCM, Twilio   | Industry standard managed services.                   |
 
-## How to Run
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
+*   **JDK 17+**
+*   **Docker & Docker Compose** (v2.0+)
+*   **OpenSSL** (for certificate generation)
+*   **Twilio Account** (SID & Auth Token)
 
-- JDK 17 or later
-- Docker and Docker Compose
-- A configured Twilio account for SMS functionality
+### 1. Repository Setup
+```bash
+git clone https://github.com/omniCoder77/Lynk.git
+cd Lynk
+```
 
-### Running Locally
+### 2. Configuration
+Create a `.env` file in the root directory. You can copy the example:
+```bash
+cp .env.example .env
+```
 
-1. **Clone the repository:**
-    ```bash
-    git clone https://github.com/omniCoder77/Lynk.git
-    cd Lynk
-    ```
+### 3. Infrastructure Security (mTLS)
+Lynk enforces strict security by default. Generate the required certificates for Kafka, Postgres, and Redis:
 
-2. **Set Environment Variables:**
-   Create a `.env` file in the root of the `Lynk` directory and populate it with the required configuration values.
+```bash
+chmod +x init/*.sh
+./init/generate_jwt.sh
+./init/generate_ca.sh
+./init/generate_kafka_certs.sh
+./init/generate_postgres_certs.sh
+./init/generate_redis_certs.sh
+./init/generate_cassandra_certs.sh
+```
 
-3. **Create JWT keys**
-    ```bash
-   ./init/generate_jwt.sh
-    ```
+### 4. Database Initialization
+Start the persistence layer first to initialize schemas.
 
-4. **Create Certificates**
-    ```bash
-   ./init/generate_ca.sh
-    ./init/generate_kafka_certs.sh
-    ./init/generate_postgres_certs.sh
-    ./init/generate_redis_certs.sh
-    ./init/generate_cassandra_certs.sh
-    ```
+```bash
+docker compose up -d cassandra postgres kafka
+```
 
-5. **Initialize the services**
-    ```bash
-    docker compose up -d cassandra, postgres, kafka
-    ```
-   Once cassandra and postgres are up, run the CQL script to create the necessary keyspace and tables and :
-    ```bash
-   docker exec -it cassandra cqlsh -f /init/init-cassandra.cql
-   sudo chmod 640 init/postgres/postgres.key
-    ```
+**Initialize Cassandra Schema:**
+Wait for the Cassandra container to be healthy, then run:
+```bash
+docker exec -it cassandra cqlsh -f /init/init-cassandra.cql
+```
 
-6. **Initialize users in kafka**
-    ```bash
-   docker exec kafka /usr/bin/kafka-configs --bootstrap-server localhost:9094 --alter --add-config 'SCRAM-SHA-512=[iterations=8192,password=message-service],SCRAM-SHA-512=[password=message-service]' --entity-type users --entity-name messageService
-   docker exec kafka /usr/bin/kafka-configs --bootstrap-server localhost:9094 --alter --add-config 'SCRAM-SHA-512=[iterations=8192,password=notification-service],SCRAM-SHA-512=[password=notification-service]' --entity-type users --entity-name notificationService
-   docker exec kafka /usr/bin/kafka-acls --bootstrap-server localhost:9094 --add --allow-principal User:messageService --operation Write --topic room.message --topic conversation.message --topic user.created
-   docker exec kafka /usr/bin/kafka-acls --bootstrap-server localhost:9094 --add --allow-principal User:notificationService --operation Read --topic room.message --topic conversation.message --topic user.created
-    ```
+**Fix Postgres Permissions:**
+```bash
+sudo chmod 640 init/postgres/postgres.key
+```
 
-7. **Start the Services:**
-    ```bash
-   docker compose up -d
-    ```
+### 5. Kafka Security (ACLs & SCRAM)
+Secure the message bus and create service users.
+
+```bash
+./init/create-kafka-users.sh
+```
+*Alternatively, run the manual `kafka-configs` commands listed in the implementation details if the script is unavailable.*
+
+### 6. Launch Microservices
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
+---
+
+## 🧪 Testing
+
+To verify the deployment:
+
+1.  **Health Checks:**
+    *   Auth Service: `http://localhost:8081/actuator/health`
+    *   Message Service: `http://localhost:8082/actuator/health`
+2.  **WebSockets:** Connect via a WS client (e.g., Postman or wscat) to `ws://localhost:8082/chat`.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
