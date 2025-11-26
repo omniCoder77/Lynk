@@ -1,0 +1,11 @@
+*.jks
+.idea
+Lynk.iml
+.env
+*.p12
+ssl/*
+.docker_secrets
+*.key
+*.crt
+*.pkcs12
+*-fcm.json

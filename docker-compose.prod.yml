@@ -1,0 +1,238 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: auth_db
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ./init/init-postgresql.sql:/docker-entrypoint-initdb.d/init-postgresql.sql
+      - postgres_data:/var/lib/postgresql/data
+      - ./init/postgres/postgres.conf:/etc/postgresql/postgresql.conf
+      - ./init/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./init/postgres/postgres.crt:/var/lib/postgresql/data/server.crt:ro
+      - ./init/postgres/postgres.key:/var/lib/postgresql/data/server.key:ro
+    command: [ "postgres",
+               "-c", "config_file=/etc/postgresql/postgresql.conf",
+               "-c", "hba_file=/etc/postgresql/pg_hba.conf" ]
+    networks:
+      - private_subnet
+
+  cassandra:
+    image: cassandra:5.0.6
+    container_name: cassandra
+    healthcheck:
+      test: [ "CMD", "cqlsh", "--ssl", "127.0.0.1", "-u", "cassandra", "-p", "cassandra", "-e", "describe keyspaces" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+      - ./init/cassandra/cassandra.yaml:/etc/cassandra/cassandra.yaml
+      - ./init/cassandra/cassandra.keystore.pkcs12:/etc/cassandra/conf/cassandra.keystore.pkcs12
+      - ./init/cassandra/cqlshrc:/root/.cassandra/cqlshrc
+      - ./init/cassandra/cassandra.truststore.jks:/etc/cassandra/conf/cassandra.truststore.jks
+      - ./init/cassandra/cassandra.crt:/etc/cassandra/conf/cassandra.crt
+      - ./init/ssl/ca.crt:/etc/cassandra/conf/ca.crt
+    networks:
+      - private_subnet
+
+  redis:
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    image: redis:8.4-rc1-alpine3.22
+    container_name: redis
+    volumes:
+      - redis_data:/data
+    networks:
+      - private_subnet
+
+  kafka:
+    image: confluentinc/cp-kafka:8.1.0
+    container_name: kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9094,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9094,EXTERNAL://kafka:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:SASL_SSL
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka.keystore.pkcs12
+      KAFKA_SSL_KEYSTORE_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_SSL_KEY_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.truststore.jks
+      KAFKA_SSL_TRUSTSTORE_PASSWORD: ${KAFKA_SSL_PASSWORD}
+
+      # SSL Settings
+      KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
+      KAFKA_SSL_ENABLED_PROTOCOLS: TLSv1.2,TLSv1.3
+      KAFKA_SSL_CLIENT_AUTH: required
+
+      # Cluster settings
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+      # SASL settings
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/secrets/kafka_jaas.conf"
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: SCRAM-SHA-512
+      KAFKA_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
+
+      # Authorization settings
+      KAFKA_AUTHORIZER_CLASS_NAME: org.apache.kafka.metadata.authorizer.StandardAuthorizer
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
+
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+      - ./init/kafka/:/etc/kafka/secrets
+      - ./init/kafka/kafka_jaas.conf:/etc/kafka/secrets/kafka_jaas.conf
+
+    healthcheck:
+      test: [ "CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9094 || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - private_subnet
+
+  auth-service:
+    build:
+      context: ./auth-service
+      args:
+        GRADLE_USER_HOME: /root/.gradle-auth
+    container_name: auth-service
+    image: auth-service
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: auth_db
+      DB_PORT: 5432
+      DB_HOST: postgres
+      MAIL_HOST: mailhog
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_KEYSTORE_LOCATION: keystore.jks
+      JWT_KEYSTORE_PASSWORD: ${JWT_KEYPASSWORD}
+      JWT_KEY_PASSWORD: ${JWT_KEYPASSWORD}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+    ports:
+      - "8081:8081"
+    networks:
+      - public_subnet
+      - private_subnet
+
+  message-service:
+    build:
+      context: ./message-service
+      args:
+        GRADLE_USER_HOME: /root/.gradle-message
+    container_name: message-service
+    image: message-service
+    depends_on:
+      cassandra: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+    environment:
+      CASSANDRA_HOST: cassandra
+      CASSANDRA_PORT: 9042
+      REDIS_HOST: redis
+      JWT_KEYSTORE_LOCATION: keystore.p12
+      JWT_KEYSTORE_PASSWORD: ${JWT_KEYPASSWORD}
+      JWT_KEY_PASSWORD: ${JWT_KEYPASSWORD}
+      KAFKA_SSL_TRUSTSTORE_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_SSL_KEYSTORE_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_SSL_KEY_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_HOST: kafka
+      REDIS_PORT: 6379
+      CASSANDRA_PASSWORD: ${CASSANDRA_PASSWORD}
+      CASSANDRA_TRUSTSTORE_PASSWORD: ${CASSANDRA_TRUSTSTORE_PASSWORD}
+    ports:
+      - "8082:8082"
+    networks:
+      - public_subnet
+      - private_subnet
+
+  notification-service:
+    build:
+      context: ./notification-service
+      args:
+        GRADLE_USER_HOME: /root/.gradle-message
+    container_name: notification-service
+    image: notification-service
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 9042
+      DB_NAME: notification_db
+      REDIS_HOST: redis
+      JWT_KEYSTORE_LOCATION: keystore.p12
+      JWT_KEYSTORE_PASSWORD: ${JWT_KEYPASSWORD}
+      JWT_KEY_PASSWORD: ${JWT_KEYPASSWORD}
+      KAFKA_SSL_TRUSTSTORE_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_SSL_KEYSTORE_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_SSL_KEY_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_HOST: kafka
+      REDIS_PORT: 6379
+    ports:
+      - "8083:8083"
+    networks:
+      - public_subnet
+      - private_subnet
+
+networks:
+  private_subnet:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+  public_subnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
+
+volumes:
+  postgres_data:
+  redis_data:
+  cassandra_data:
+  kafka_data:
+    driver: local
+
+secrets:
+  kafka_ssl_truststore_password:
+    file: ./.docker_secrets/kafka_ssl_truststore_password
+  kafka_ssl_keystore_password:
+    file: ./.docker_secrets/kafka_ssl_keystore_password
+  kafka_ssl_key_password:
+    file: ./.docker_secrets/kafka_ssl_key_password
+  jwt_key_password:
+    file: ./.docker_secrets/jwt_key_password
+  twilio_account_sid:
+    file: ./.docker_secrets/twilio_account_sid
+  twilio_auth_token:
+    file: ./.docker_secrets/twilio_auth_token
+  twilio_phone_number:
+    file: ./.docker_secrets/twilio_phone_number

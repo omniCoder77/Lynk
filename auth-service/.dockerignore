@@ -1,0 +1,8 @@
+src/test/*
+.gradle
+.kotlin
+.gitattributes
+.gitignore
+auth-service.iml
+HELP.md
+src/main/kotlin/com/lynk/authservice/Helper.kt

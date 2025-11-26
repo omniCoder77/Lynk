@@ -1,0 +1,66 @@
+@host = http://localhost:8082
+@token = eyJhbGciOiJIUzI1NiJ9.eyJwaG9uZV9udW1iZXIiOiIrMTc3NTMwNjk3NDMiLCJzdWIiOiJkYjE5MjViMS1iMjJkLTQ5YzgtYTBkNC1iMTc0YzMwNzhiOWUiLCJpYXQiOjE3NjM3MDcxMDl9.Zd1VHbJlSjGNB0uekI_A1RX6hNBcKu-l_-RIy5xs-D8
+
+@roomId = 236e944e-600c-44f6-9ae5-ff737462f713
+@userId = db1925b1-b22d-49c8-a0d4-b174c3078b9e
+@newMemberId = 5c3b12a9-a9a2-4a77-98e3-0c1f6a422e6b
+@replyToMessageId = 1a2b3c4d-5e6f-7080-90a0-b0c0d0e0f100
+
+### Get all Rooms (for the authenticated user)
+GET {{host}}/api/v1/rooms
+Authorization: Bearer {{token}}
+
+### Create a Room
+POST {{host}}/api/v1/rooms
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "New Project Room",
+  "description": "A chat for our new project",
+  "initialMemberIds": []
+}
+
+### Update Room Details
+PUT {{host}}/api/v1/rooms/{{roomId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Renamed Project Room",
+  "description": "Updated room description for Project X",
+  "initialMemberIds": []
+}
+
+### Get Room Members
+GET {{host}}/api/v1/rooms/{{roomId}}/members
+Authorization: Bearer {{token}}
+
+### Add Member to Room
+POST {{host}}/api/v1/rooms/{{roomId}}/members
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "memberId": "{{newMemberId}}",
+  "role": "MEMBER"
+}
+
+### Get Room Messages
+GET {{host}}/api/v1/rooms/{{roomId}}/messages?start=2025-01-01T00:00:00Z
+Authorization: Bearer {{token}}
+
+### Send Message to Room
+POST {{host}}/api/v1/rooms/{{roomId}}/messages
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "content": "Hello team, this is a test message.",
+  "replyToMessageId": null,
+  "timestamp": "2025-11-21T23:55:00Z"
+}
+
+### Websocket
+WEBSOCKET {{host}}/ws/room
+Authorization: Bearer {{token}}

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Lynk MessageService WebSocket Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        #status { font-weight: bold; margin-bottom: 15px; }
+        .connected { color: green; }
+        .disconnected { color: red; }
+        #messages { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; margin-top: 15px; background-color: #f9f9f9; }
+        .message { margin-bottom: 5px; border-bottom: 1px dotted #eee; padding-bottom: 3px; }
+    </style>
+</head>
+<body>
+
+<h1>WebSocket Test Client</h1>
+
+<div>
+    <label for="url">WebSocket URL:</label>
+    <input type="text" id="url" value="ws://localhost:8082/ws/chat" style="width: 80%;">
+</div>
+
+<div style="margin-top: 10px;">
+    <p><strong>Status:</strong> <span id="status" class="disconnected">Disconnected</span></p>
+</div>
+
+<hr>
+
+<h2>Authentication Token (For Custom Clients)</h2>
+<p style="font-size: small;">
+    Use this token with a custom WebSocket client (e.g., Postman) by setting the
+    <code style="background-color: #ffe0b2; padding: 2px;">Authorization: Bearer</code> header.
+</p>
+<textarea id="jwtToken" rows="3" style="width: 99%; font-family: monospace;" readonly>eyJhbGciOiJIUzI1NiJ9.eyJwaG9uZV9udW1iZXIiOiIrMTc3NTMwNjk3NDMiLCJzdWIiOiJkYjE5MjViMS1iMjJkLTQ5YzgtYTBkNC1iMTc0YzMwNzhiOWUiLCJpYXQiOjE3NjM3MDcxMDl9.Zd1VHbJlSjGNB0uekI_A1RX6hNBcKu-l_-RIy5xs-D8</textarea>
+
+<hr>
+
+<h2>Send Message</h2>
+<input type="text" id="messageInput" placeholder="Enter message content" style="width: 70%;">
+<button onclick="sendMessage()">Send</button>
+
+<h2>Received Messages (Server Logs will show "Received from user...")</h2>
+<div id="messages"></div>
+
+<script>
+    const jwtToken = document.getElementById('jwtToken').value;
+    const urlInput = document.getElementById('url');
+    const statusSpan = document.getElementById('status');
+    const messageInput = document.getElementById('messageInput');
+    const messagesDiv = document.getElementById('messages');
+    let socket;
+
+    function log(text) {
+        const msgElement = document.createElement('div');
+        msgElement.classList.add('message');
+        msgElement.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+        messagesDiv.prepend(msgElement);
+    }
+
+    function connect() {
+        if (socket) {
+            socket.close();
+        }
+
+        // NOTE: Standard JS WebSocket API does not allow custom headers like Authorization.
+        // This connection will likely fail the JWT check unless you modify the server
+        // or use a client tool that can inject headers.
+        try {
+            socket = new WebSocket(urlInput.value);
+        } catch (error) {
+            log(`Connection failed: ${error.message}`);
+            return;
+        }
+
+        socket.onopen = function(e) {
+            statusSpan.textContent = 'Connected';
+            statusSpan.className = 'connected';
+            log('Connection established.');
+        };
+
+        socket.onmessage = function(e) {
+            log(`Received: ${e.data}`);
+        };
+
+        socket.onclose = function(e) {
+            statusSpan.textContent = `Disconnected (Code: ${e.code}, Reason: ${e.reason || 'N/A'})`;
+            statusSpan.className = 'disconnected';
+            log('Connection closed.');
+        };
+
+        socket.onerror = function(e) {
+            statusSpan.textContent = 'Error';
+            statusSpan.className = 'disconnected';
+            log('Connection error occurred.');
+        };
+    }
+
+    function sendMessage() {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+            log('Error: Not connected. Attempting reconnect...');
+            connect(); // Try to connect on send if not open
+            return;
+        }
+
+        const content = messageInput.value.trim();
+        if (content === "") {
+            log('Cannot send empty message.');
+            return;
+        }
+
+        // You can send a simple JSON object or a string.
+        // The ChatWebSocketHandler logs the payloadAsText, so a string is fine for testing presence.
+        const message = JSON.stringify({
+            type: "TEST_MESSAGE",
+            content: content
+        });
+
+        socket.send(message);
+        log(`Sent: ${content}`);
+        messageInput.value = '';
+    }
+
+    // Initial connection attempt on load
+    window.onload = connect;
+</script>
+</body>
+</html>

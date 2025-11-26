@@ -1,0 +1,12 @@
+WEBSOCKET ws://localhost:8082/ws/chat
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJwaG9uZV9udW1iZXIiOiIrMTc3NTMwNjk3NDMiLCJzdWIiOiJkYjE5MjViMS1iMjJkLTQ5YzgtYTBkNC1iMTc0YzMwNzhiOWUiLCJpYXQiOjE3NjM3MDcxMDl9.Zd1VHbJlSjGNB0uekI_A1RX6hNBcKu-l_-RIy5xs-D8
+
+###
+WEBSOCKET ws://localhost:8082/ws/room
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJwaG9uZV9udW1iZXIiOiIrMTc3NTMwNjk3NDMiLCJzdWIiOiJkYjE5MjViMS1iMjJkLTQ5YzgtYTBkNC1iMTc0YzMwNzhiOWUiLCJpYXQiOjE3NjM3MDcxMDl9.Zd1VHbJlSjGNB0uekI_A1RX6hNBcKu-l_-RIy5xs-D8
+
+#{
+#  "roomId": "236e944e-600c-44f6-9ae5-ff737462f713",
+#  "senderId": "db1925b1-b22d-49c8-a0d4-b174c3078b9e",
+#  "content": "Hello How are you?"
+#}
