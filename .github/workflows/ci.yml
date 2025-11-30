@@ -29,22 +29,16 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582
 
-      - name: Create test FCM config for notification service
+      - name: Create FCM config from GitHub Secrets
         if: matrix.service == 'notification-service'
+        env:
+          FCM_JSON_BASE64: ${{ secrets.FCM_JSON_BASE64 }}
         run: |
+          mkdir -p notification-service/src/main/resources
           mkdir -p notification-service/src/test/resources
-          cat > notification-service/src/test/resources/lynk-fcm.json << 'EOF'
-          {
-            "type": "service_account",
-            "project_id": "test-project",
-            "private_key_id": "test-key-id",
-            "private_key": "-----BEGIN PRIVATE KEY-----\\nTEST\\n-----END PRIVATE KEY-----\\n",
-            "client_email": "test@test-project.iam.gserviceaccount.com",
-            "client_id": "123456789",
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            "token_uri": "https://oauth2.googleapis.com/token"
-          }
-          EOF
+          echo "$FCM_JSON_BASE64" | base64 -d > notification-service/src/main/resources/lynk-fcm.json
+          echo "$FCM_JSON_BASE64" | base64 -d > notification-service/src/test/resources/lynk-fcm.json
+          echo "FCM config file created successfully"
 
       - name: Build with Gradle Wrapper
         run: ./${{ matrix.service }}/gradlew -p ${{ matrix.service }} build
