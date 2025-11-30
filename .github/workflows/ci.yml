@@ -29,8 +29,30 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582
 
+      - name: Create test FCM config for notification service
+        if: matrix.service == 'notification-service'
+        run: |
+          mkdir -p notification-service/src/test/resources
+          cat > notification-service/src/test/resources/lynk-fcm.json << 'EOF'
+          {
+            "type": "service_account",
+            "project_id": "test-project",
+            "private_key_id": "test-key-id",
+            "private_key": "-----BEGIN PRIVATE KEY-----\\nTEST\\n-----END PRIVATE KEY-----\\n",
+            "client_email": "test@test-project.iam.gserviceaccount.com",
+            "client_id": "123456789",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token"
+          }
+          EOF
+
       - name: Build with Gradle Wrapper
         run: ./${{ matrix.service }}/gradlew -p ${{ matrix.service }} build
+
+      - name: Run tests with debug info (notification-service only)
+        if: matrix.service == 'notification-service' && failure()
+        run: |
+          ./notification-service/gradlew -p notification-service test --info --stacktrace
 
   dependency-submission:
     runs-on: ubuntu-latest
