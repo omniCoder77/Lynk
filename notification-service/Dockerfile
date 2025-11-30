@@ -38,4 +38,8 @@ COPY --from=builder /app/build/libs/*.jar app.jar
 
 EXPOSE 8083
 
-ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-Djava.security.egd=file:/dev/./urandom", "-jar", "app.jar"]
+ENTRYPOINT ["java", \
+    "-XX:+UseZGC", \
+    "-XX:+UseContainerSupport", \
+    "-Djava.security.egd=file:/dev/./urandom", \
+    "-jar", "app.jar"]
