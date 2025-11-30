@@ -9,15 +9,14 @@ import com.lynk.messageservice.infrastructure.outbound.kafka.dto.ConversationMes
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.time.Instant
 import java.util.*
 
 @Component
 class ConversationServiceImpl(
     private val conversationRepository: ConversationRepository, private val eventPublisher: EventPublisher
 ) : ConversationService {
-    override fun getConversations(userId: String, start: Instant, end: Instant): Flux<Conversation> {
-        return conversationRepository.get(userId, start, end)
+    override fun getConversations(userId: String, recipientId: String): Flux<Conversation> {
+        return conversationRepository.get(userId, recipientId)
     }
 
     override fun sendMessage(
@@ -29,19 +28,20 @@ class ConversationServiceImpl(
             if (!exists) {
                 conversationRepository.insert(userId, recipientId)
             } else {
-                conversationRepository.store(message = content, senderId = userId, recipientId = recipientId).flatMap { created ->
-                    if (created) {
-                        val conversationMessageEvent = ConversationMessageEvent(
-                            senderId = userId,
-                            payload = ConversationMessagePayload(
-                                content = content, recipientId = recipientId, phoneNumber = phoneNumber
-                            ),
-                        )
-                        Mono.fromRunnable { eventPublisher.publish(conversationMessageEvent) }
-                    } else {
-                        Mono.error(RuntimeException("Message already exists"))
+                conversationRepository.store(message = content, senderId = userId, recipientId = recipientId)
+                    .flatMap { created ->
+                        if (created) {
+                            val conversationMessageEvent = ConversationMessageEvent(
+                                senderId = userId,
+                                payload = ConversationMessagePayload(
+                                    content = content, recipientId = recipientId, phoneNumber = phoneNumber
+                                ),
+                            )
+                            Mono.fromRunnable { eventPublisher.publish(conversationMessageEvent) }
+                        } else {
+                            Mono.error(RuntimeException("Message already exists"))
+                        }
                     }
-                }
             }
         }
     }

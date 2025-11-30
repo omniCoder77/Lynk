@@ -28,27 +28,11 @@ class RoomByMemberRepositoryImpl(private val reactiveCassandraTemplate: Reactive
     override fun updateRoomByMember(
         memberId: UUID,
         roomId: UUID,
-        lastMessagePreview: String?,
-        lastMessenger: String?,
-        avatarExtension: String?,
         name: String?
     ): Mono<Boolean> {
 
         var update = Update.empty()
         var hasUpdates = false
-
-        if (lastMessenger != null) {
-            update = update.set("lastMessenger", lastMessenger)
-            hasUpdates = true
-        }
-        if (lastMessagePreview != null) {
-            update = update.set("lastMessagePreview", lastMessagePreview)
-            hasUpdates = true
-        }
-        if (avatarExtension != null) {
-            update = update.set("avatarExtension", avatarExtension)
-            hasUpdates = true
-        }
 
         if (name != null) {
             update = update.set("name", name)

@@ -6,6 +6,6 @@ import reactor.core.publisher.Mono
 import java.time.Instant
 
 interface ConversationService {
-    fun getConversations(userId: String, start: Instant, end: Instant): Flux<Conversation>
+    fun getConversations(userId: String,  recipientId: String): Flux<Conversation>
     fun sendMessage(userId: String, recipientId: String, content: String, replyToMessageId: String?, phoneNumber: String): Mono<Boolean>
 }

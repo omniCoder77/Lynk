@@ -6,15 +6,21 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.data.cassandra.DataCassandraTest
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.context.annotation.Import
 import org.springframework.data.cassandra.core.ReactiveCassandraTemplate
+import org.testcontainers.cassandra.CassandraContainer
+import org.testcontainers.cassandra.CassandraQueryWaitStrategy
+import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import org.testcontainers.utility.DockerImageName
 import reactor.test.StepVerifier
 import java.util.UUID
 
-@SpringBootTest
-@Import(TestcontainersConfiguration::class)
+@DataCassandraTest
+@Import(MessageReactionRepositoryImpl::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
 class MessageReactionRepositoryImplTest {
@@ -29,6 +35,17 @@ class MessageReactionRepositoryImplTest {
     private val messageId = UUID.randomUUID()
     private val memberId1 = UUID.randomUUID()
     private val memberId2 = UUID.randomUUID()
+
+    companion object {
+        @Container
+        @ServiceConnection
+        val cassandraContainer: CassandraContainer =
+            CassandraContainer(DockerImageName.parse("cassandra:5.0.6")).withExposedPorts(9042)
+                .withInitScript("cassandra-init-data.cql").apply {
+                    setWaitStrategy(CassandraQueryWaitStrategy())
+                }
+    }
+
 
     @AfterEach
     fun cleanup() {
@@ -53,7 +70,6 @@ class MessageReactionRepositoryImplTest {
             .expectNext(true)
             .verifyComplete()
 
-        // Verify the emoji was updated
         StepVerifier.create(
             reactiveCassandraTemplate.selectOneById(
                 com.lynk.messageservice.infrastructure.outbound.persistence.cassandra.entity.MessageReactionKey(roomId, messageId, memberId1),
@@ -74,7 +90,6 @@ class MessageReactionRepositoryImplTest {
             .expectNext(true)
             .verifyComplete()
 
-        // Verify the reaction is gone
         StepVerifier.create(
             reactiveCassandraTemplate.selectOneById(
                 com.lynk.messageservice.infrastructure.outbound.persistence.cassandra.entity.MessageReactionKey(roomId, messageId, memberId1),
@@ -89,10 +104,8 @@ class MessageReactionRepositoryImplTest {
         messageReactionRepository.addReaction(roomId, messageId, memberId1, "👍").block()
         messageReactionRepository.addReaction(roomId, messageId, memberId2, "😂").block()
 
-        // Delete member 1's reaction
         messageReactionRepository.deleteReaction(roomId, messageId, memberId1).block()
 
-        // Verify member 2's reaction still exists
         StepVerifier.create(
             reactiveCassandraTemplate.selectOneById(
                 com.lynk.messageservice.infrastructure.outbound.persistence.cassandra.entity.MessageReactionKey(roomId, messageId, memberId2),

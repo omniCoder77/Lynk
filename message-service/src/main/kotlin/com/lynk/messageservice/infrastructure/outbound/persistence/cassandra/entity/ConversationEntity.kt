@@ -9,12 +9,12 @@ import java.util.*
 @Table("conversation")
 data class ConversationEntity(
     @PrimaryKey val key: ConversationKey,
-    val lastActivityTimestamp: Instant
+    val last_activity_timestamp: Instant
 ) {
     fun toDomain() = Conversation(
         userId = key.userId,
         recipientId = key.recipientId,
-        lastActivityTimestamp = lastActivityTimestamp,
+        lastActivityTimestamp = last_activity_timestamp,
     )
 }
 

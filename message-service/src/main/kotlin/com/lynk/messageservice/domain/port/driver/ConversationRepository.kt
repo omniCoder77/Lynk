@@ -7,9 +7,9 @@ import java.time.Instant
 import java.util.UUID
 
 interface ConversationRepository {
-    fun get(userId: String, start: Instant, end: Instant): Flux<Conversation>
+    fun get(userId: String, recipientId: String): Flux<Conversation>
     fun store(message: String, senderId: UUID, recipientId: UUID): Mono<Boolean>
-    fun delete(userId: String, start: Instant, end: Instant): Mono<Boolean>
+    fun delete(userId: UUID, recipientId: UUID): Mono<Boolean>
     fun exists(userId: UUID, recipientId: UUID): Mono<Boolean>
     fun insert(user1: UUID, user2: UUID): Mono<Boolean>
 }

@@ -74,9 +74,7 @@ class RoomServiceImpl(
                     val updaterUUID = UUID.fromString(updater)
                     memberByRoomRepository.updateRoom(description, avatarUrl, name, roomId, updaterUUID)
                         .flatMap { memberId ->
-                            roomByMemberRepository.updateRoomByMember(
-                                memberId, roomId, null, null, avatarUrl, name
-                            )
+                            roomByMemberRepository.updateRoomByMember(memberId, roomId, null)
                         }.all { it }
                 }
             }

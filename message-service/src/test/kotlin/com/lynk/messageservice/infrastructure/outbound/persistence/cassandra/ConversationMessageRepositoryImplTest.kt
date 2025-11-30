@@ -1,24 +1,28 @@
 package com.lynk.messageservice.infrastructure.outbound.persistence.cassandra
 
-import com.lynk.messageservice.TestcontainersConfiguration
 import com.lynk.messageservice.infrastructure.outbound.persistence.cassandra.entity.ConversationMessageEntity
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.autoconfigure.data.cassandra.DataCassandraTest
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.context.annotation.Import
 import org.springframework.data.cassandra.core.ReactiveCassandraTemplate
+import org.testcontainers.cassandra.CassandraContainer
+import org.testcontainers.cassandra.CassandraQueryWaitStrategy
+import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import org.testcontainers.utility.DockerImageName
 import reactor.test.StepVerifier
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.*
 
-@Import(TestcontainersConfiguration::class)
+@DataCassandraTest
+@Import(ConversationMessageRepositoryImpl::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
-@SpringBootTest
 class ConversationMessageRepositoryImplTest {
 
     @Autowired
@@ -29,6 +33,16 @@ class ConversationMessageRepositoryImplTest {
 
     private val user1 = UUID.randomUUID().toString()
     private val user2 = UUID.randomUUID().toString()
+
+    companion object {
+        @Container
+        @ServiceConnection
+        val cassandraContainer: CassandraContainer =
+            CassandraContainer(DockerImageName.parse("cassandra:5.0.6")).withExposedPorts(9042)
+                .withInitScript("cassandra-init-data.cql").apply {
+                    setWaitStrategy(CassandraQueryWaitStrategy())
+                }
+    }
 
     @AfterEach
     fun truncateTable() {
