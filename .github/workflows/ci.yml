@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        service: [ "auth-service", "order-service", "product-service" ]
+        service: [ "auth-service", "message-service", "notification-service" ]
 
     permissions:
       contents: read
