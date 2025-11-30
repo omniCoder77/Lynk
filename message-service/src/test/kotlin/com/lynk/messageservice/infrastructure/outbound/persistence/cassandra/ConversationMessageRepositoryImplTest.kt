@@ -1,19 +1,14 @@
 package com.lynk.messageservice.infrastructure.outbound.persistence.cassandra
 
-import com.datastax.dse.driver.api.core.cql.reactive.ReactiveSession
-import com.datastax.oss.driver.api.core.CqlSession
 import com.lynk.messageservice.TestcontainersConfiguration
 import com.lynk.messageservice.infrastructure.outbound.persistence.cassandra.entity.ConversationMessageEntity
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.data.cassandra.core.ReactiveCassandraTemplate
-import org.springframework.data.cassandra.core.cql.session.DefaultBridgedReactiveSession
-import org.testcontainers.cassandra.CassandraContainer
 import org.testcontainers.junit.jupiter.Testcontainers
 import reactor.test.StepVerifier
 import java.time.Instant
@@ -23,10 +18,12 @@ import java.util.*
 @Import(TestcontainersConfiguration::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
+@SpringBootTest
 class ConversationMessageRepositoryImplTest {
 
     @Autowired
     private lateinit var messageRepository: ConversationMessageRepositoryImpl
+
     @Autowired
     private lateinit var reactiveCassandraTemplate: ReactiveCassandraTemplate
 
@@ -43,9 +40,7 @@ class ConversationMessageRepositoryImplTest {
         val timestamp = Instant.now()
         val result = messageRepository.store("Hello", user1, user2, timestamp)
 
-        StepVerifier.create(result)
-            .expectNext(true)
-            .verifyComplete()
+        StepVerifier.create(result).expectNext(true).verifyComplete()
     }
 
     @Test
@@ -56,9 +51,7 @@ class ConversationMessageRepositoryImplTest {
 
         val messages = messageRepository.get(user1, user2, now.minusSeconds(20), now.plusSeconds(1))
 
-        StepVerifier.create(messages)
-            .expectNextCount(2)
-            .verifyComplete()
+        StepVerifier.create(messages).expectNextCount(2).verifyComplete()
     }
 
     @Test
@@ -67,15 +60,11 @@ class ConversationMessageRepositoryImplTest {
         messageRepository.store("To be deleted", user1, user2, now).block()
         val result = messageRepository.delete(user1, user2, now.minusSeconds(1), now.plusSeconds(1))
 
-        StepVerifier.create(result)
-            .expectNext(true)
-            .verifyComplete()
+        StepVerifier.create(result).expectNext(true).verifyComplete()
 
         // Verify that the message is actually deleted
         val messages = messageRepository.get(user1, user2, now.minusSeconds(1), now.plusSeconds(1))
-        StepVerifier.create(messages)
-            .expectNextCount(0)
-            .verifyComplete()
+        StepVerifier.create(messages).expectNextCount(0).verifyComplete()
     }
 
     @Test
@@ -88,10 +77,8 @@ class ConversationMessageRepositoryImplTest {
 
         val messages = messageRepository.get(user1, user2, now.minusSeconds(20), now.plusSeconds(1))
 
-        StepVerifier.create(messages)
-            .expectNextMatches { it.content == messageContent2 }
-            .expectNextMatches { it.content == messageContent1 }
-            .verifyComplete()
+        StepVerifier.create(messages).expectNextMatches { it.content == messageContent2 }
+            .expectNextMatches { it.content == messageContent1 }.verifyComplete()
     }
 
     @Test
@@ -103,9 +90,7 @@ class ConversationMessageRepositoryImplTest {
 
         val messages = messageRepository.get(user1, user2, lastMonth.minusSeconds(1), now.plusSeconds(1))
 
-        StepVerifier.create(messages)
-            .expectNextCount(2)
-            .verifyComplete()
+        StepVerifier.create(messages).expectNextCount(2).verifyComplete()
     }
 
     @Test
@@ -115,9 +100,7 @@ class ConversationMessageRepositoryImplTest {
 
         val messages = messageRepository.get(user2, user1, now.minusSeconds(1), now.plusSeconds(1))
 
-        StepVerifier.create(messages)
-            .expectNextCount(1)
-            .verifyComplete()
+        StepVerifier.create(messages).expectNextCount(1).verifyComplete()
     }
 
     // --- Edge Cases ---
@@ -128,9 +111,7 @@ class ConversationMessageRepositoryImplTest {
             UUID.randomUUID().toString(), UUID.randomUUID().toString(), Instant.now(), Instant.now()
         )
 
-        StepVerifier.create(messages)
-            .expectNextCount(0)
-            .verifyComplete()
+        StepVerifier.create(messages).expectNextCount(0).verifyComplete()
     }
 
     @Test
@@ -140,18 +121,14 @@ class ConversationMessageRepositoryImplTest {
 
         val messages = messageRepository.get(user1, user2, now.plusSeconds(10), now.plusSeconds(20))
 
-        StepVerifier.create(messages)
-            .expectNextCount(0)
-            .verifyComplete()
+        StepVerifier.create(messages).expectNextCount(0).verifyComplete()
     }
 
     @Test
     fun `store should handle empty message content`() {
         val result = messageRepository.store("", user1, user2, Instant.now())
 
-        StepVerifier.create(result)
-            .expectNext(true)
-            .verifyComplete()
+        StepVerifier.create(result).expectNext(true).verifyComplete()
     }
 
     @Test
@@ -161,8 +138,6 @@ class ConversationMessageRepositoryImplTest {
             UUID.randomUUID().toString(), UUID.randomUUID().toString(), now, now.plusSeconds(1)
         )
 
-        StepVerifier.create(result)
-            .expectNext(true)
-            .verifyComplete()
+        StepVerifier.create(result).expectNext(true).verifyComplete()
     }
 }

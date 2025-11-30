@@ -36,6 +36,21 @@ class RedisConfig {
     }
 
     @Bean
+    fun reactiveRedisTemplateBoolean(factory: ReactiveRedisConnectionFactory): ReactiveRedisTemplate<String, Boolean> {
+        val keySerializer = StringRedisSerializer.UTF_8
+
+        val objectMapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
+        val valueSerializer = Jackson2JsonRedisSerializer(objectMapper, Boolean::class.java)
+
+        val context = RedisSerializationContext.newSerializationContext<String, Boolean>(keySerializer)
+            .key(keySerializer)
+            .value(valueSerializer)
+            .build()
+
+        return ReactiveRedisTemplate(factory, context)
+    }
+
+    @Bean
     fun script(): RedisScript<Boolean> {
         return RedisScript.of(ClassPathResource("scripts/rateLimiter.lua"), Boolean::class.java)
     }

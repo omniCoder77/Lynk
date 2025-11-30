@@ -10,16 +10,24 @@ import org.springframework.kafka.listener.ContainerProperties
 @Configuration
 class KafkaConfig {
 
-    @Bean("roomMessage")
-    fun roomMessage(): NewTopic {
-        val topic = NewTopic("room.message", 30, 1)
-        return topic
+    @Bean("conversationMessageTopic")
+    fun conversationMessageTopic(): NewTopic {
+        return NewTopic("conversation.message", 30, 1)
     }
 
-    @Bean("conversationMessage")
-    fun conversationMessage(): NewTopic {
-        val topic = NewTopic("conversation.message", 30, 1)
-        return topic
+    @Bean("conversationNotificationTopic")
+    fun conversationNotificationTopic(): NewTopic {
+        return NewTopic("conversation.notification", 30, 1)
+    }
+
+    @Bean("roomMessageTopic")
+    fun roomMessageTopic(): NewTopic {
+        return NewTopic("room.message", 30, 1)
+    }
+
+    @Bean("roomNotificationTopic")
+    fun roomNotificationTopic(): NewTopic {
+        return NewTopic("room.notification", 30, 1)
     }
 
     @Bean

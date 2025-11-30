@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.implementation
+
 plugins {
     kotlin("jvm") version "2.1.21"
     kotlin("plugin.spring") version "2.1.21"
@@ -19,6 +21,8 @@ repositories {
     mavenCentral()
 }
 
+extra["testcontainers.version"] = "2.0.2"
+
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-cassandra-reactive")
     implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
@@ -30,19 +34,23 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("org.springframework.kafka:spring-kafka")
+    implementation("org.springframework.boot:spring-boot-starter-cache")
+
+
+    testImplementation(platform("org.testcontainers:testcontainers-bom:2.0.2"))
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
-    testImplementation("io.projectreactor:reactor-test")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-    implementation("org.springframework.boot:spring-boot-starter-cache")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
-    testImplementation("org.springframework.security:spring-security-test")
-    testImplementation("org.testcontainers:cassandra")
-    testImplementation("org.testcontainers:junit-jupiter")
-    testImplementation("com.redis:testcontainers-redis:2.2.4")
-    testImplementation("org.springframework.kafka:spring-kafka-test")
-    testImplementation("org.testcontainers:kafka")
+
+    testImplementation("org.testcontainers:testcontainers-junit-jupiter")
+    testImplementation("org.testcontainers:testcontainers-kafka")
+    testImplementation("org.testcontainers:testcontainers-cassandra")
+
+    testImplementation("com.redis:testcontainers-redis:2.2.2")
+    testImplementation("io.projectreactor:reactor-test:3.8.0")
+
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    implementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
 
     implementation("com.razorpay:razorpay-java:1.4.8")
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
