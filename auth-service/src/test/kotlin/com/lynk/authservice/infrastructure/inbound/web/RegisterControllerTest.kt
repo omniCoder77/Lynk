@@ -8,6 +8,7 @@ import com.lynk.authservice.infrastructure.inbound.web.controller.RegisterContro
 import com.lynk.authservice.infrastructure.inbound.web.dto.RegisterRequest
 import com.lynk.authservice.infrastructure.inbound.web.dto.RegisterResponse
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
@@ -15,9 +16,13 @@ import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
+import org.springframework.core.io.ClassPathResource
+import org.springframework.data.redis.core.ReactiveRedisTemplate
+import org.springframework.data.redis.core.script.RedisScript
 import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.reactive.server.WebTestClient
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.util.*
 
@@ -33,7 +38,19 @@ class RegisterControllerTest(
     private lateinit var registerService: RegisterService
 
     @MockitoBean
+    private lateinit var rateLimitRedisTemplate: ReactiveRedisTemplate<String, Long>
+
+    @MockitoBean
+    private var redisScript: RedisScript<Boolean> = RedisScript.of(ClassPathResource("scripts/rateLimiter.lua"), Boolean::class.java)
+
+    @MockitoBean
     private lateinit var jwtTokenService: JwtTokenService
+
+    @BeforeEach
+    fun setUp() {
+        whenever(rateLimitRedisTemplate.execute(any<RedisScript<Boolean>>(), any(), any()))
+            .thenReturn(Flux.just(false))
+    }
 
     @Test
     fun `should return 400 when LastNameEmpty`() {

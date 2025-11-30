@@ -6,10 +6,10 @@ import org.junit.jupiter.api.Test
 
 class JwtServiceImplTest {
     val jwtKeyManager: JwtKeyManager = JwtKeyManager(
-        keyStoreFilePath = System.getenv("JWT_KEYSTORE_LOCATION"),
-        keyStorePasswordStr = System.getenv("JWT_KEYSTORE_PASSWORD"),
-        keyAlias = "jwtKey",
-        keyPasswordStr = System.getenv("JWT_KEY_PASSWORD")
+        keyStoreFilePath = "keystore-test.p12",
+        keyStorePasswordStr = "keystore-test-password",
+        keyAlias = "jwtKey-test",
+        keyPasswordStr = "keystore-test-password",
     )
 
     private val jwtService = JwtTokenServiceImpl(

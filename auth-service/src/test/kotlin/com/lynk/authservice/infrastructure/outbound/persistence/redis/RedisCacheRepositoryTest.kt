@@ -1,20 +1,22 @@
 package com.lynk.authservice.infrastructure.outbound.persistence.redis
 
 import com.fasterxml.jackson.databind.JsonMappingException
-import com.lynk.authservice.TestcontainersConfiguration
+import com.redis.testcontainers.RedisContainer
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.context.annotation.Import
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.data.redis.core.ReactiveRedisTemplate
+import org.testcontainers.containers.wait.strategy.Wait
+import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import org.testcontainers.utility.DockerImageName
 import reactor.test.StepVerifier
 import java.time.temporal.ChronoUnit
 
 @Testcontainers
 @SpringBootTest
-@Import(TestcontainersConfiguration::class)
 class RedisCacheRepositoryTest {
 
     @Autowired
@@ -26,6 +28,14 @@ class RedisCacheRepositoryTest {
     private val testObject = SimpleObject("test", 1)
     private val testKey = "testKey"
     private val testTtl = 10L
+
+    companion object {
+        @Container
+        @ServiceConnection
+        private val redisContainer =
+            RedisContainer(DockerImageName.parse("redis:8.4-rc1-alpine3.22")).withExposedPorts(6379)
+                .waitingFor(Wait.forListeningPort())
+    }
 
     @BeforeEach
     fun cleanup() {

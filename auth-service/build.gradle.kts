@@ -19,6 +19,7 @@ repositories {
 }
 
 extra["springCloudVersion"] = "2025.0.0"
+extra["testcontainers.version"] = "2.0.2"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
@@ -31,27 +32,32 @@ dependencies {
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
-    testImplementation("com.redis:testcontainers-redis:2.2.4")
     implementation("org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j")
     implementation("org.springframework.kafka:spring-kafka")
-    implementation("org.thymeleaf.extras:thymeleaf-extras-springsecurity6")
-    testImplementation("org.testcontainers:postgresql")
     runtimeOnly("org.postgresql:r2dbc-postgresql")
+    implementation("org.thymeleaf.extras:thymeleaf-extras-springsecurity6")
+    implementation("org.postgresql:postgresql")
+    implementation("org.postgresql:r2dbc-postgresql")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    testImplementation(platform("org.testcontainers:testcontainers-bom:2.0.2"))
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
+
+    testImplementation("org.testcontainers:testcontainers-junit-jupiter")
+    testImplementation("org.testcontainers:testcontainers-kafka")
+    testImplementation("org.testcontainers:testcontainers-postgresql")
+    testImplementation("com.redis:testcontainers-redis:2.2.2")
+
     testImplementation("io.projectreactor:reactor-test")
+
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     testImplementation("org.springframework.kafka:spring-kafka-test")
     testImplementation("org.springframework.security:spring-security-test")
-    testImplementation("org.testcontainers:junit-jupiter")
-    testImplementation("org.testcontainers:kafka")
-    testImplementation("org.testcontainers:postgresql")
-    testImplementation("org.testcontainers:r2dbc")
-    implementation("org.postgresql:postgresql")
-    implementation("org.postgresql:r2dbc-postgresql")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.mockito.kotlin:mockito-kotlin:6.0.0")
+    testImplementation("org.testcontainers:testcontainers-r2dbc")
 
     implementation("com.twilio.sdk:twilio:10.9.2")
 
