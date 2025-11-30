@@ -16,7 +16,7 @@ class UserRepositoryImpl(private val r2dbcEntityTemplate: R2dbcEntityTemplate) :
     override fun insert(userId: UUID): Mono<Boolean> {
         val userEntity = UserEntity(userId = userId)
         return r2dbcEntityTemplate.insert<UserEntity?>(userEntity).map { true }
-            .onErrorResume(Exception::class.java, Function { e: Exception? -> Mono.just(false) }).defaultIfEmpty(false)
+            .onErrorResume(Exception::class.java, Function { _: Exception? -> Mono.just(false) }).defaultIfEmpty(false)
     }
 
     override fun find(userId: UUID): Mono<UserEntity> {
