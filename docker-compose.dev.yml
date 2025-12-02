@@ -192,6 +192,22 @@ services:
     ports:
       - "8083:8083"
 
+  media-service:
+    build:
+      context: ./media-service
+      args:
+        GRADLE_USER_HOME: /root/.gradle-message
+    container_name: media-service
+    environment:
+      AWS_ACCESS_KEY: ${AWS_ACCESS_KEY}
+      AWS_SECRET_KEY: ${AWS_SECRET_KEY}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      JWT_KEYSTORE_LOCATION: keystore.p12
+      JWT_KEYSTORE_PASSWORD: ${JWT_KEYPASSWORD}
+      JWT_KEY_PASSWORD: ${JWT_KEYPASSWORD}
+    ports:
+      - "8084:8084"
+
 volumes:
   postgres_data:
   redis_data:

@@ -30,7 +30,6 @@ class AWSS3StorageGateway(
 
     override fun delete(fileName: String): Mono<Boolean> {
         if (fileName.isBlank()) {
-            logger.error("File name cannot be blank")
             return Mono.just(false)
         }
 
@@ -47,7 +46,6 @@ class AWSS3StorageGateway(
 
     override fun read(fileName: String): Mono<ByteArray> {
         if (fileName.isBlank()) {
-            logger.error("File name cannot be blank")
             return Mono.empty()
         }
 

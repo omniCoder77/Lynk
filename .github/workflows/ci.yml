@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        service: [ "auth-service", "message-service", "notification-service" ]
+        service: [ "auth-service", "message-service", "notification-service", "media-service" ]
 
     permissions:
       contents: read
@@ -53,7 +53,7 @@ jobs:
 
     strategy:
       matrix:
-        service: [ "auth-service", "message-service", "notification-service" ]
+        service: [ "auth-service", "message-service", "notification-service", "media-service"]
 
     permissions:
       contents: write
