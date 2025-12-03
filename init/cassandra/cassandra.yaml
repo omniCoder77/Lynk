@@ -102,7 +102,7 @@ client_encryption_options:
   enabled: true
   keystore: /etc/cassandra/conf/cassandra.keystore.pkcs12
   keystore_password: cassandra
-  require_client_auth: false
+  require_client_auth: true
   truststore: /etc/cassandra/conf/cassandra.truststore.jks
   truststore_password: cassandra
 internode_compression: dc
