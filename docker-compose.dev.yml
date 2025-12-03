@@ -41,6 +41,7 @@ services:
       - ./init/cassandra/cqlshrc:/root/.cassandra/cqlshrc
       - ./init/cassandra/cassandra.truststore.jks:/etc/cassandra/conf/cassandra.truststore.jks
       - ./init/cassandra/cassandra.crt:/etc/cassandra/conf/cassandra.crt
+      - ./init/cassandra/cassandra.key:/etc/cassandra/conf/cassandra.key
       - ./init/ssl/ca.crt:/etc/cassandra/conf/ca.crt
 
   redis:
