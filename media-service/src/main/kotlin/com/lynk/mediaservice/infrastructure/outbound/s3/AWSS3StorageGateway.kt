@@ -19,13 +19,13 @@ class AWSS3StorageGateway(
 ) : StorageGateway {
     private val logger = LoggerFactory.getLogger(this::class.java)
 
-    override fun upload(file: File): Mono<Boolean> {
+    override fun upload(file: File, filePath: String): Mono<Boolean> {
         return Mono.fromFuture {
             s3AsyncClient.putObject(
-                PutObjectRequest.builder().bucket(s3Bucket).key(file.name).build(), AsyncRequestBody.fromFile(file)
+                PutObjectRequest.builder().bucket(s3Bucket).key(filePath).build(), AsyncRequestBody.fromFile(file)
             )
         }.map { response -> response.sdkHttpResponse().isSuccessful }
-            .doOnError { e -> logger.error("Upload failed", e) }.onErrorReturn(false)
+            .doOnError { e -> logger.error("Upload failed for path: $filePath", e) }.onErrorReturn(false)
     }
 
     override fun delete(fileName: String): Mono<Boolean> {

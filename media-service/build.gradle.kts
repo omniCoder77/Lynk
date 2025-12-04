@@ -29,15 +29,18 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("software.amazon.awssdk:s3:2.38.7")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
+    implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
 
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("io.projectreactor:reactor-test")
+    testImplementation(platform("org.testcontainers:testcontainers-bom:2.0.2"))
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
-    testImplementation("org.testcontainers:testcontainers-localstack:2.0.2")
+    testImplementation("com.redis:testcontainers-redis")
+    testImplementation("org.testcontainers:testcontainers-localstack")
 
     testImplementation("io.mockk:mockk:1.14.6")
     testImplementation("org.mockito.kotlin:mockito-kotlin:6.0.0")
@@ -45,6 +48,42 @@ dependencies {
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
     implementation("io.jsonwebtoken:jjwt-impl:0.12.6")
     implementation("io.jsonwebtoken:jjwt-jackson:0.12.6")
+}
+
+val integrationTest by sourceSets.creating {
+    kotlin.srcDir("src/integrationTest/kotlin")
+    resources.srcDir("src/integrationTest/resources")
+
+    compileClasspath += sourceSets["main"].output + sourceSets["test"].output + configurations["testCompileClasspath"]
+    runtimeClasspath += sourceSets["main"].output + sourceSets["test"].output + configurations["testRuntimeClasspath"]
+}
+
+val e2eTest by sourceSets.creating {
+    kotlin.srcDir("src/e2eTest/kotlin")
+    resources.srcDir("src/e2eTest/resources")
+
+    compileClasspath += sourceSets["main"].output + sourceSets["test"].output + configurations["testCompileClasspath"]
+    runtimeClasspath += sourceSets["main"].output + sourceSets["test"].output + configurations["testRuntimeClasspath"]
+}
+
+
+tasks.register<Test>("integrationTest") {
+    testClassesDirs = integrationTest.output.classesDirs
+    classpath = integrationTest.runtimeClasspath
+    useJUnitPlatform()
+}
+
+tasks.register<Test>("e2eTest") {
+    testClassesDirs = e2eTest.output.classesDirs
+    classpath = e2eTest.runtimeClasspath
+    useJUnitPlatform()
+}
+
+tasks.register("allTests") {
+    dependsOn("test", "integrationTest", "e2eTest")
+    doLast {
+        println("All tests completed")
+    }
 }
 
 kotlin {

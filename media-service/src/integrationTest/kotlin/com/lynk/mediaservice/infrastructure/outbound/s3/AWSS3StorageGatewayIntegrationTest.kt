@@ -44,10 +44,7 @@ class AWSS3StorageGatewayIntegrationTest {
 
     @BeforeEach
     fun setUp() {
-        try {
-            s3AsyncClient.createBucket(CreateBucketRequest.builder().bucket(BUCKET_NAME).build()).join()
-        } catch (e: Exception) {
-        }
+        s3AsyncClient.createBucket(CreateBucketRequest.builder().bucket(BUCKET_NAME).build()).join()
     }
 
     @Test
