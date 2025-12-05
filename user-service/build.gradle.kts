@@ -37,6 +37,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.postgresql:r2dbc-postgresql")
     implementation("org.springframework.kafka:spring-kafka")
+    implementation("org.awaitility:awaitility")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     testImplementation("org.springframework.kafka:spring-kafka-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -54,6 +55,10 @@ dependencies {
     testImplementation("com.redis:testcontainers-redis")
     testImplementation("io.projectreactor:reactor-test:3.8.0")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+
+    implementation("io.jsonwebtoken:jjwt-api:0.12.6")
+    implementation("io.jsonwebtoken:jjwt-impl:0.12.6")
+    implementation("io.jsonwebtoken:jjwt-jackson:0.12.6")
 }
 
 dependencyManagement {

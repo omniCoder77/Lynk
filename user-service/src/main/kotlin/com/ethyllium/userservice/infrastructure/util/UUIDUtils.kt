@@ -39,9 +39,9 @@ fun uuid5(namespace: UUID, name: String): UUID {
 }
 
 object UUIDUtils {
-    fun getConversationId(user1: String, user2: String): UUID {
-        val sorted = listOf(user1, user2).sorted()
-        val key = "${sorted[0]}:${sorted[1]}"
+    fun merge(uuid1: String, uuid2: String, ordered: Boolean = true): UUID {
+        val sorted = listOf(uuid1, uuid2).sorted()
+        val key = if (ordered) "${sorted[0]}:${sorted[1]}" else "$uuid1:$uuid2"
         return uuid5(CONVERSATION_NAMESPACE, key)
     }
 }

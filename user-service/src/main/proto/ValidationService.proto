@@ -4,7 +4,6 @@ option java_multiple_files = true;
 
 service ValidationService {
   rpc validateConversation(ConversationValidationRequest) returns (ConversationValidationResponse) {}
-  rpc validateRoom(RoomValidationRequest) returns (RoomValidationResponse) {}
 }
 
 message ConversationValidationRequest {
@@ -17,26 +16,11 @@ enum ConversationValidationStatus {
   CONVERSATION_VALIDATION_STATUS_NOT_FOUND = 1;
   CONVERSATION_VALIDATION_STATUS_BLOCKED = 2;
   CONVERSATION_VALIDATION_STATUS_BAD_FORMAT = 3;
-}
-
-enum RoomValidationStatus {
-  ROOM_VALIDATION_STATUS_OK = 0;
-  ROOM_VALIDATION_STATUS_ROOM_NOT_FOUND = 1;
-  ROOM_VALIDATION_STATUS_SENDER_BLOCKED_FROM_ROOM = 2;
-  ROOM_VALIDATION_STATUS_SENDER_NOT_MEMBER = 3;
+  CONVERSATION_VALIDATION_STATUS_SENDER_BLOCKED_RECIPIENT = 4;
+  CONVERSATION_VALIDATION_STATUS_RECIPIENT_BLOCKED_SENDER = 5;
 }
 
 message ConversationValidationResponse {
   ConversationValidationStatus status = 1;
-  optional string message = 2;
-}
-
-message RoomValidationRequest {
-  string senderId = 1;
-  string roomId = 2;
-}
-
-message RoomValidationResponse {
-  RoomValidationStatus status = 1;
   optional string message = 2;
 }
