@@ -18,8 +18,9 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init/postgres/postgres.conf:/etc/postgresql/postgresql.conf
       - ./init/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf
-      - ./init/postgres/postgres.crt:/var/lib/postgresql/data/server.crt:ro
-      - ./init/postgres/postgres.key:/var/lib/postgresql/data/server.key:ro
+      - ./init/ssl/ca.crt:/var/lib/postgresql/data/ca.crt:ro
+      - ./init/postgres/postgres.crt:/var/lib/postgresql/18/docker/server.crt
+      - ./init/postgres/postgres.key:/var/lib/postgresql/18/docker/server.key
     command: [ "postgres",
                "-c", "config_file=/etc/postgresql/postgresql.conf",
                "-c", "hba_file=/etc/postgresql/pg_hba.conf" ]
