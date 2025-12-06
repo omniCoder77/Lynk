@@ -1,6 +1,6 @@
 package com.ethyllium.roomservice.infrastructure.outbound.security
 
-import com.lynk.messageservice.domain.exception.InvalidJwtException
+import com.ethyllium.roomservice.domain.exception.InvalidJwtException
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.JwtParser
 import io.jsonwebtoken.Jwts
