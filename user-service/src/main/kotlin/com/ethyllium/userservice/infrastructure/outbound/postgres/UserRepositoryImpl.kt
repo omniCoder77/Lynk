@@ -29,6 +29,11 @@ class UserRepositoryImpl(private val r2dbcEntityTemplate: R2dbcEntityTemplate) :
         return r2dbcEntityTemplate.selectOne(query, UserEntity::class.java).map { it.toUser() }
     }
 
+    override fun exist(userId: UUID): Mono<Boolean> {
+        val query = Query.query(Criteria.where("user_id").`is`(userId))
+        return r2dbcEntityTemplate.exists(query, UserEntity::class.java)
+    }
+
     override fun delete(userId: UUID): Mono<Boolean> {
         val query = Query.query(Criteria.where("user_id").`is`(userId))
         return r2dbcEntityTemplate.delete(query, UserEntity::class.java).map { it > 0 }
