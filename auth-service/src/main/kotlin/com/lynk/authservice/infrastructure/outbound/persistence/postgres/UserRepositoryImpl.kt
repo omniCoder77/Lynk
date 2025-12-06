@@ -1,9 +1,11 @@
 package com.lynk.authservice.infrastructure.outbound.persistence.postgres
 
+import com.lynk.authservice.domain.exception.DuplicatePhoneNumberException
 import com.lynk.authservice.domain.payload.entity.User
 import com.lynk.authservice.domain.port.driven.UserRepository
 import com.lynk.authservice.infrastructure.outbound.persistence.postgres.entity.UserEntity
 import com.lynk.authservice.infrastructure.outbound.persistence.postgres.entity.toEntity
+import io.r2dbc.spi.R2dbcDataIntegrityViolationException
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria
 import org.springframework.data.relational.core.query.Query
@@ -42,7 +44,6 @@ class UserRepositoryImpl(private val r2dbcEntityTemplate: R2dbcEntityTemplate) :
 
     override fun findByPhoneNumber(phoneNumber: String): Mono<User> {
         val query = Query.query(Criteria.where("phone_number").`is`(phoneNumber))
-        return r2dbcEntityTemplate.selectOne(query, UserEntity::class.java)
-            .map { it.toUser() }
+        return r2dbcEntityTemplate.selectOne(query, UserEntity::class.java).map { it.toUser() }
     }
 }

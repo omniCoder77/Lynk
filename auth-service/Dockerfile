@@ -30,6 +30,9 @@ FROM eclipse-temurin:21-jre-alpine AS runtime
 
 WORKDIR /app
 COPY keystore.p12 ./
+COPY postgres-auth-service-client.crt ./
+COPY postgres-auth-service-client.key ./
+COPY ca.crt ./
 
 COPY --from=builder /app/build/libs/*.jar app.jar
 
