@@ -13,7 +13,7 @@ import java.util.UUID
 
 @Component
 class ConversationRepositoryImpl(private val r2dbcEntityTemplate: R2dbcEntityTemplate) : ConversationRepository {
-    override fun store(conversation: Conversation): Mono<ConversationEntity> {
+    override fun insert(conversation: Conversation): Mono<ConversationEntity> {
         return r2dbcEntityTemplate.insert(conversation.toEntity())
     }
 
