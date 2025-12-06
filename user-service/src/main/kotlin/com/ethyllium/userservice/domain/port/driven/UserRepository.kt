@@ -9,4 +9,5 @@ interface UserRepository {
     fun updateUsername(userId: UUID, username: String): Mono<Boolean>
     fun delete(userId: UUID): Mono<Boolean>
     fun find(userId: UUID): Mono<User>
+    fun exist(userId: UUID): Mono<Boolean>
 }
