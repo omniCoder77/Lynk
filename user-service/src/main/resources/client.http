@@ -1,0 +1,67 @@
+### Variables
+@host = http://localhost:8085
+@authToken =eyJhbGciOiJIUzI1NiJ9.eyJwaG9uZV9udW1iZXIiOiIrMTIzNDU2Nzg5MCIsInN1YiI6IjZmNTlkNWUzLTVlOTgtNDhkOS05OWUxLWVkYjYyYzVmZjU2NSIsImlhdCI6MTc2NTA1NDAxNX0.8rDLtynny6aJ44-_ByBDl5_idofmI8lkwMdkzoliClA
+@currentUserId =6f59d5e3-5e98-48d9-99e1-edb62c5ff565
+# This is a random UUID to represent another user for blocking/conversations
+@targetUserId = 550e8400-e29b-41d4-a716-446655440000
+
+# ---------------------------------------------------------------------
+# User Controller Endpoints
+# ---------------------------------------------------------------------
+
+### Get Current User Profile (Me)
+GET {{host}}/users/me
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+### Update Current User Profile
+# Updates username, bio, and profile picture URL
+PATCH {{host}}/users/me?username=updatedUser&bio=Im a Kotlin dev&profile=http://image.url/pic.jpg
+Authorization: Bearer {{authToken}}
+
+### Get Specific User by ID
+GET {{host}}/users/{{currentUserId}}
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+### Search Users by Username
+GET {{host}}/users/search?username=updated&page=0&size=10
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+### Get List of Blocked Users
+GET {{host}}/users/me/blocked
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+# ---------------------------------------------------------------------
+# Conversation Controller Endpoints
+# ---------------------------------------------------------------------
+
+### Create Conversation
+# Creates a conversation between current user (from token) and the user in the body
+POST {{host}}/conversation
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "userId": "{{targetUserId}}"
+}
+
+### Get All Conversations for Current User
+GET {{host}}/conversation
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+### Block a User
+PATCH {{host}}/conversation/block/{{targetUserId}}
+Authorization: Bearer {{authToken}}
+
+### Unblock a User
+PATCH {{host}}/conversation/unblock/{{targetUserId}}
+Authorization: Bearer {{authToken}}
+
+### Delete Conversation
+# The path variable here is the recipientId (the other user in the conversation)
+DELETE {{host}}/conversation/{{targetUserId}}
+Authorization: Bearer {{authToken}}

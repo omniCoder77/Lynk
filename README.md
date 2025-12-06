@@ -204,10 +204,10 @@ Once Kafka is running, apply the Access Control Lists (ACLs) and SCRAM credentia
 ```bash
 docker exec kafka /usr/bin/kafka-configs --bootstrap-server localhost:9094 --alter --add-config 'SCRAM-SHA-512=[iterations=8192,password=message-service],SCRAM-SHA-512=[password=message-service]' --entity-type users --entity-name messageService
 docker exec kafka /usr/bin/kafka-configs --bootstrap-server localhost:9094 --alter --add-config 'SCRAM-SHA-512=[iterations=8192,password=notification-service],SCRAM-SHA-512=[password=notification-service]' --entity-type users --entity-name notificationService
-docker exec kafka /usr/bin/kafka-configs --bootstrap-server localhost:9094 --alter --add-config 'SCRAM-SHA-512=[iterations=8192,password=user-service],SCRAM-SHA-512=[password=user-service]' --entity-type users --entity-name notificationService
+docker exec kafka /usr/bin/kafka-configs --bootstrap-server localhost:9094 --alter --add-config 'SCRAM-SHA-512=[iterations=8192,password=user-service],SCRAM-SHA-512=[password=user-service]' --entity-type users --entity-name userService
 docker exec kafka /usr/bin/kafka-acls --bootstrap-server localhost:9094 --add --allow-principal User:messageService --operation Write --topic room.message --topic conversation.message --topic user.created
 docker exec kafka /usr/bin/kafka-acls --bootstrap-server localhost:9094 --add --allow-principal User:notificationService --operation Read --topic room.message --topic conversation.message --topic user.created
-docker exec kafka /usr/bin/kafka-acls --bootstrap-server localhost:9094 --add --allow-principal User:userService --operation Write --topic user.created
+docker exec kafka /usr/bin/kafka-acls --bootstrap-server localhost:9094 --add --allow-principal User:userService --operation Read --topic user.created
 ```
 
 ### 5. Launch Microservices

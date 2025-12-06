@@ -101,42 +101,6 @@ protobuf {
     }
 }
 
-val integrationTest by sourceSets.creating {
-    kotlin.srcDir("src/integrationTest/kotlin")
-    resources.srcDir("src/integrationTest/resources")
-
-    compileClasspath += sourceSets["main"].output + sourceSets["test"].output + configurations["testCompileClasspath"]
-    runtimeClasspath += sourceSets["main"].output + sourceSets["test"].output + configurations["testRuntimeClasspath"]
-}
-
-val e2eTest by sourceSets.creating {
-    kotlin.srcDir("src/e2eTest/kotlin")
-    resources.srcDir("src/e2eTest/resources")
-
-    compileClasspath += sourceSets["main"].output + sourceSets["test"].output + configurations["testCompileClasspath"]
-    runtimeClasspath += sourceSets["main"].output + sourceSets["test"].output + configurations["testRuntimeClasspath"]
-}
-
-
-tasks.register<Test>("integrationTest") {
-    testClassesDirs = integrationTest.output.classesDirs
-    classpath = integrationTest.runtimeClasspath
-    useJUnitPlatform()
-}
-
-tasks.register<Test>("e2eTest") {
-    testClassesDirs = e2eTest.output.classesDirs
-    classpath = e2eTest.runtimeClasspath
-    useJUnitPlatform()
-}
-
-tasks.register("allTests") {
-    dependsOn("test", "integrationTest", "e2eTest")
-    doLast {
-        println("All tests completed")
-    }
-}
-
 tasks.withType<Test> {
     useJUnitPlatform()
 }

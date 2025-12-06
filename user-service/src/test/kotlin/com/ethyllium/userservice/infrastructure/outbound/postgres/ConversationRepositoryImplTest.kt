@@ -29,15 +29,15 @@ class ConversationRepositoryImplTest {
     private val recipientId = UUID.randomUUID()
     private val isBlocked = false
 
-    private val conversation = Conversation(conversationId, senderId, recipientId, isBlocked)
-    private val conversationEntity = ConversationEntity(conversationId, senderId, recipientId, isBlocked)
+    private val conversation = Conversation(conversationId, senderId, recipientId)
+    private val conversationEntity = ConversationEntity(conversationId, senderId, recipientId)
 
     @Test
     fun `store inserts conversation entity and returns it`() {
         every { r2dbcEntityTemplate.insert(any<ConversationEntity>()) } returns Mono.just(conversationEntity)
 
-        StepVerifier.create(conversationRepository.store(conversation))
-            .expectNext(conversationEntity)
+        StepVerifier.create(conversationRepository.insert(conversation))
+            .expectNext(conversationEntity.conversationId)
             .verifyComplete()
 
         verify {

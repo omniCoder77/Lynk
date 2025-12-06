@@ -2,7 +2,7 @@ package com.ethyllium.userservice.infrastructure.inbound.kafka
 
 import com.ethyllium.userservice.domain.exception.UserCreationException
 import com.ethyllium.userservice.domain.model.User
-import com.ethyllium.userservice.domain.port.driver.UserRepository
+import com.ethyllium.userservice.domain.port.driven.UserRepository
 import com.ethyllium.userservice.infrastructure.inbound.kafka.dto.UserCreated
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -37,7 +37,7 @@ class KafkaListener(
             return
         }
         val user = User(
-            userId = userId, username = userCreatedEvent.username, phoneNumber = userCreatedEvent.phoneNumber
+            userId = userId, username = userCreatedEvent.username, phoneNumber = userCreatedEvent.phoneNumber, "", ""
         )
         userRepository.insert(user).blockOptional().orElseThrow {
             // TODO send message to DLQ

@@ -1,7 +1,7 @@
 package com.ethyllium.userservice.infrastructure.outbound.postgres
 
 import com.ethyllium.userservice.domain.model.User
-import com.ethyllium.userservice.domain.port.driver.UserRepository
+import com.ethyllium.userservice.domain.port.driven.UserRepository
 import com.ethyllium.userservice.infrastructure.outbound.postgres.entity.UserEntity
 import com.ethyllium.userservice.infrastructure.outbound.postgres.entity.toEntity
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
@@ -9,6 +9,7 @@ import org.springframework.data.relational.core.query.Criteria
 import org.springframework.data.relational.core.query.Query
 import org.springframework.data.relational.core.query.Update
 import org.springframework.stereotype.Component
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.util.*
 
@@ -18,9 +19,12 @@ class UserRepositoryImpl(private val r2dbcEntityTemplate: R2dbcEntityTemplate) :
         return r2dbcEntityTemplate.insert(user.toEntity()).map { it.userId }
     }
 
-    override fun updateUsername(userId: UUID, username: String): Mono<Boolean> {
+    override fun update(userId: UUID, username: String?, profile: String?, bio: String?): Mono<Boolean> {
         val query = Query.query(Criteria.where("user_id").`is`(userId))
-        val update = Update.update("username", username)
+        var update = Update.from(emptyMap())
+        username?.let { update = update.set("username", it) }
+        profile?.let { update = update.set("profile", it) }
+        bio?.let { update = update.set("bio", it) }
         return r2dbcEntityTemplate.update(query, update, UserEntity::class.java).map { it > 0 }
     }
 
@@ -32,6 +36,11 @@ class UserRepositoryImpl(private val r2dbcEntityTemplate: R2dbcEntityTemplate) :
     override fun exist(userId: UUID): Mono<Boolean> {
         val query = Query.query(Criteria.where("user_id").`is`(userId))
         return r2dbcEntityTemplate.exists(query, UserEntity::class.java)
+    }
+
+    override fun findByUsername(username: String, limit: Int, offset: Int): Flux<User> {
+        val query = Query.query(Criteria.where("username").like("%$username%")).limit(limit).offset(offset.toLong())
+        return r2dbcEntityTemplate.select(query, UserEntity::class.java).map { it.toUser() }
     }
 
     override fun delete(userId: UUID): Mono<Boolean> {

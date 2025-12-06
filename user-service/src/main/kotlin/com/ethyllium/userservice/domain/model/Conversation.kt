@@ -5,6 +5,5 @@ import java.util.UUID
 data class Conversation(
     val conversationId: UUID,
     val senderId: UUID,
-    val recipientId: UUID,
-    val isBlocked: Boolean
+    val recipientId: UUID
 )

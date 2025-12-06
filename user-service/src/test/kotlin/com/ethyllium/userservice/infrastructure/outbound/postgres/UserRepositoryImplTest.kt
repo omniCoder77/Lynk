@@ -29,8 +29,8 @@ class UserRepositoryImplTest {
     private val username = "testuser"
     private val phoneNumber = "+1234567890"
 
-    private val user = User(userId, username, phoneNumber)
-    private val userEntity = UserEntity(userId, username, phoneNumber)
+    private val user = User(userId, username, phoneNumber, "", "")
+    private val userEntity = UserEntity(userId, username, phoneNumber, "", "")
 
     @Test
     fun `insert stores user entity and returns userId`() {
@@ -46,7 +46,7 @@ class UserRepositoryImplTest {
             r2dbcEntityTemplate.update(any<Query>(), any<Update>(), UserEntity::class.java)
         } returns Mono.just(1)
 
-        StepVerifier.create(userRepository.updateUsername(userId, newUsername)).expectNext(true).verifyComplete()
+        StepVerifier.create(userRepository.update(userId, newUsername)).expectNext(true).verifyComplete()
 
         verify {
             r2dbcEntityTemplate.update(any<Query>(), any<Update>(), UserEntity::class.java)
@@ -60,7 +60,7 @@ class UserRepositoryImplTest {
             r2dbcEntityTemplate.update(any<Query>(), any<Update>(), UserEntity::class.java)
         } returns Mono.just(0)
 
-        StepVerifier.create(userRepository.updateUsername(userId, newUsername)).expectNext(false).verifyComplete()
+        StepVerifier.create(userRepository.update(userId, newUsername)).expectNext(false).verifyComplete()
     }
 
     @Test

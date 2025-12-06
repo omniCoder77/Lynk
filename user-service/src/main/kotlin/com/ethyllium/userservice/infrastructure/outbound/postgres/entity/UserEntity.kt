@@ -10,8 +10,10 @@ data class UserEntity(
     @Id val userId: UUID,
     val username: String,
     val phoneNumber: String,
+    val profile: String,
+    val bio: String,
 ) {
-    fun toUser() = User(userId, username, phoneNumber)
+    fun toUser() = User(userId, username, phoneNumber, profile, bio)
 }
 
-fun User.toEntity(): UserEntity = UserEntity(userId, username, phoneNumber)
+fun User.toEntity(): UserEntity = UserEntity(userId, username, phoneNumber, profile, bio)

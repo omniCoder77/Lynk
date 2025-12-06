@@ -1,6 +1,6 @@
 package com.ethyllium.userservice.infrastructure.outbound.security
 
-import com.lynk.messageservice.domain.exception.InvalidJwtException
+import com.ethyllium.userservice.domain.exception.InvalidJwtException
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.JwtParser
 import io.jsonwebtoken.Jwts
@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
 @Component
-class JwtTokenValidator(private val keyProvider: JwtKeyProvider) {
+class JwtTokenValidator(keyProvider: JwtKeyProvider) {
 
     private var jwtParser: JwtParser = Jwts.parser().verifyWith(keyProvider.getKey()).build()
     private val logger = LoggerFactory.getLogger(this::class.java)

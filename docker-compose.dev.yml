@@ -122,7 +122,7 @@ services:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     environment:
-      DB_USERNAME: ${POSTGRES_USER}
+      DB_USERNAME: auth_service
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_NAME: auth_db
       DB_PORT: 5432
@@ -180,7 +180,7 @@ services:
       kafka: { condition: service_healthy }
     environment:
       DB_HOST: postgres
-      DB_PORT: 9042
+      DB_PORT: 5432
       DB_NAME: notification_db
       REDIS_HOST: redis
       JWT_KEYSTORE_LOCATION: keystore.p12
@@ -209,6 +209,36 @@ services:
       JWT_KEY_PASSWORD: ${JWT_KEYPASSWORD}
     ports:
       - "8084:8084"
+
+  user-service:
+    build:
+      context: ./user-service
+      args:
+        GRADLE_USER_HOME: /root/.gradle-user
+    container_name: user-service
+    image: user-service
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: user_db
+      REDIS_HOST: redis
+      DB_USERNAME: user_service
+      JWT_KEYSTORE_LOCATION: keystore.p12
+      JWT_KEYSTORE_PASSWORD: ${JWT_KEYPASSWORD}
+      JWT_KEY_PASSWORD: ${JWT_KEYPASSWORD}
+      KAFKA_SSL_TRUSTSTORE_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_SSL_KEYSTORE_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_SSL_KEY_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_HOST: kafka
+      REDIS_PORT: 6379
+    ports:
+      - "8085:8085"
+      - "9090:9090"  # RPC port
+
 
 volumes:
   postgres_data:

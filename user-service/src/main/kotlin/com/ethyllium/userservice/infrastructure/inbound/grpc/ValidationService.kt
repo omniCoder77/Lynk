@@ -43,9 +43,6 @@ class ValidationService(
                 conversation == null -> ConversationValidationResponse.newBuilder()
                     .setStatus(ConversationValidationStatus.CONVERSATION_VALIDATION_STATUS_NOT_FOUND).build()
 
-                conversation.isBlocked -> ConversationValidationResponse.newBuilder()
-                    .setStatus(ConversationValidationStatus.CONVERSATION_VALIDATION_STATUS_BLOCKED).build()
-
                 blocklist1 != null -> ConversationValidationResponse.newBuilder()
                     .setStatus(ConversationValidationStatus.CONVERSATION_VALIDATION_STATUS_SENDER_BLOCKED_RECIPIENT)
                     .build()
