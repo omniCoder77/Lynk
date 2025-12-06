@@ -22,3 +22,5 @@ rm postgres-user-service-client.csr
 cp postgres-auth-service-client.crt postgres-auth-service-client.key ../../auth-service
 cp postgres-user-service-client.crt postgres-user-service-client.key ../../user-service
 cp postgres-room-service-client.crt postgres-room-service-client.key ../../room-service
+
+rm postgres-auth-service-client.crt postgres-auth-service-client.key postgres-user-service-client.crt postgres-user-service-client.key postgres-room-service-client.crt postgres-room-service-client.key
