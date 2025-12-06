@@ -15,7 +15,12 @@ import java.util.*
 @Component
 class UserRepositoryImpl(private val r2dbcEntityTemplate: R2dbcEntityTemplate) : UserRepository {
     override fun persist(user: User): Mono<UUID> {
-        return r2dbcEntityTemplate.insert(user.toEntity()).map { it.userId }
+        return r2dbcEntityTemplate.insert(user.toEntity()).map { it.userId }.onErrorMap {
+            if (it is R2dbcDataIntegrityViolationException) {
+                throw DuplicatePhoneNumberException("A user with this phone number already exists.")
+            }
+            it
+        }
     }
 
     override fun setTotpSecret(it: UUID, totpSecret: String): Mono<Long> {
