@@ -1,23 +1,22 @@
-# Lynk | Reactive Communication Platform
+# 🚀 Lynk | Reactive Communication Platform
 
-![Java](https://img.shields.io/badge/Java-17-orange?style=flat-square&logo=java)
-![Kotlin](https://img.shields.io/badge/Kotlin-1.9-purple?style=flat-square&logo=kotlin)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2-green?style=flat-square&logo=spring)
-![Security](https://img.shields.io/badge/Security-mTLS%20%7C%20SCRAM-red?style=flat-square&logo=lock)
+![Kotlin](https://img.shields.io/badge/Kotlin-2.0-purple?style=flat-square&logo=kotlin)
+![Java](https://img.shields.io/badge/JVM-21-orange?style=flat-square&logo=java)
+![Spring Boot](https://img.shields.io/badge/Spring%20WebFlux-3.2-green?style=flat-square&logo=spring)
 ![Architecture](https://img.shields.io/badge/Architecture-Reactive%20Microservices-blue?style=flat-square)
+![Security](https://img.shields.io/badge/Security-Zero--Trust%20%7C%20mTLS%20%7C%20SCRAM-red?style=flat-square&logo=lock)
+![Persistence](https://img.shields.io/badge/Data%20Stack-Cassandra%20%7C%20PG%20%7C%20Redis-yellow?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey?style=flat-square)
 
-**Lynk** is a high-performance, distributed real-time communication platform engineered on the reactive principles of **Spring WebFlux**. Designed for massive concurrency and low-latency throughput, it leverages a non-blocking event-loop architecture to handle thousands of concurrent connections with minimal resource overhead.
+**Lynk** is a high-performance, event-driven, and intrinsically secure real-time communication platform built on **Kotlin** and **Spring WebFlux**. It utilizes a fully non-blocking architecture, powered by Project Reactor, to achieve superior concurrency and low-latency message throughput suitable for millions of concurrent users.
 
-The system employs an event-driven architecture using **Apache Kafka** for asynchronous decoupling, **Cassandra** for write-heavy chat logs, and **Redis** for high-speed caching.
-
-> **Security Notice:** Lynk implements a Zero-Trust security model with end-to-end mTLS, strict SCRAM authentication, and rigorous network segmentation between public-facing services and private data infrastructure.
+The entire system adheres to a **Zero-Trust Security Model**, mandating cryptographic proof of identity for every internal service connection.
 
 ---
 
-## 🏗 High-Level Architecture
+## 🏗 High-Level Architecture: Zero-Trust Segmentation
 
-The platform follows a domain-driven microservices architecture hosted within a VPC-like environment. The network is segmented into **Public/Private Bridge** subnets for microservices and strict **Private Subnets** for the data layer, ensuring databases and message brokers are never exposed to the public internet.
+The infrastructure operates with strict network segmentation, isolating all critical data stores (DBs, Kafka) from external access in a **Private Subnet**. Microservices are dual-homed, acting as secure gates between the public interface and the private data layer.
 
 ```mermaid
 flowchart LR
@@ -33,18 +32,20 @@ direction LR
 
 subgraph AppLayer [Public/Private Bridge Subnet]
 direction TB
-S_AUTH(fa:fa-shield-alt <b>Auth Service</b><br/>Spring WebFlux)
-S_MSG(fa:fa-comments <b>Message Service</b><br/>Spring WebFlux)
-S_NOTIF(fa:fa-bell <b>Notification Service</b><br/>Spring WebFlux)
-S_MEDIA(fa:fa-images <b>Media Service</b><br/>Spring WebFlux)
+S_AUTH(fa:fa-shield-alt <b>Auth Service</b><br/>Login, JWT, MFA)
+S_USER(fa:fa-users <b>User Service</b><br/>Profile, Blocklist, gRPC)
+S_MSG(fa:fa-comments <b>Message Service</b><br/>WebSocket, Real-time Chat)
+S_NOTIF(fa:fa-bell <b>Notification Service</b><br/>FCM, Kafka Consumer)
+S_MEDIA(fa:fa-images <b>Media Service</b><br/>S3 Upload, Validation)
+S_ROOM(fa:fa-door-closed <b>Room Service</b><br/>Group/Membership Logic)
 end
 
 subgraph DataLayer [Private Subnet]
 direction TB
-M_KAFKA{{fa:fa-random <b>Kafka Cluster</b><br/>SCRAM-512 / mTLS}}
-D_REDIS[(fa:fa-memory <b>Redis Stack</b><br/>SCRAM-256 / mTLS)]
-D_PG[(fa:fa-database <b>PostgreSQL</b><br/>SCRAM-256 / mTLS)]
-D_CASS[(fa:fa-layer-group <b>Cassandra</b><br/>SCRAM-256 / mTLS)]
+M_KAFKA{{fa:fa-random <b>Apache Kafka</b><br/>SCRAM-512 / mTLS}}
+D_REDIS[(fa:fa-memory <b>Redis Stack</b><br/>Cache, Rate Limit, mTLS)]
+D_PG[(fa:fa-database <b>PostgreSQL</b><br/>Auth/User/Room/Notif Metadata, mTLS)]
+D_CASS[(fa:fa-layer-group <b>Cassandra</b><br/>High-Volume Chat Logs, mTLS)]
 end
 end
 
@@ -58,24 +59,18 @@ end
 %% Client Interactions
 CLIENT -.-o|1. HTTPS/WSS| S_AUTH
 CLIENT <===>|2. Real-time WS| S_MSG
-CLIENT ===|3. Upload/Download| S_MEDIA
+CLIENT ===|3. REST/gRPC| S_USER
+CLIENT ===|4. Upload/Download| S_MEDIA
 
-%% Internal Auth Flows
-S_AUTH ==>|mTLS| D_PG
-S_AUTH ==>|mTLS| D_REDIS
-S_AUTH -.->|mTLS + SCRAM| M_KAFKA
+%% Internal Flows
+S_AUTH,S_USER,S_ROOM,S_NOTIF ==>|mTLS| D_PG
+S_AUTH,S_MSG ==>|mTLS| D_REDIS
+S_AUTH,S_MSG,S_USER,S_NOTIF -.->|mTLS + SCRAM| M_KAFKA
 
-%% Message Flows
+%% Data Flows
 S_MSG ==>|mTLS| D_CASS
-S_MSG ==>|mTLS| D_REDIS
-S_MSG -.->|mTLS + SCRAM| M_KAFKA
-
-%% Notification Flows
-M_KAFKA -.->|Consume| S_NOTIF
-S_NOTIF -->|mTLS| D_PG
+S_USER <==>|gRPC| S_MSG
 S_NOTIF -->|HTTPS| E_FCM
-
-%% External
 S_AUTH --> E_TWILIO
 S_MEDIA --> E_S3
 
@@ -88,7 +83,7 @@ classDef vpc fill:#F4F9F9,stroke:#607D8B,stroke-width:2px,stroke-dasharray: 5 5;
 classDef private fill:#ECEFF1,stroke:#CFD8DC,stroke-width:2px;
 
 class CLIENT client;
-class S_AUTH,S_MSG,S_NOTIF,S_MEDIA service;
+class S_AUTH,S_MSG,S_NOTIF,S_MEDIA,S_USER,S_ROOM service;
 class D_PG,D_CASS,D_REDIS db;
 class M_KAFKA bus;
 class E_TWILIO,E_FCM,E_S3 ext;
@@ -98,6 +93,21 @@ class DataLayer private;
 
 ---
 
+## 💡 Key Innovations & Design Decisions
+
+### 1. High-Performance Persistence
+*   **Cassandra Time-Series:** The `message-service` utilizes Cassandra for chat logs, with a custom `BucketUtils.kt` to implement **time-bucketed partitioning**. This prevents partitions from growing infinitely large, optimizing read/write performance for high-volume chat history retrieval across date ranges.
+*   **Probabilistic Data Structures:** The `message-service` uses **Redis Cuckoo Filters** for $O(1)$ space-efficient lookups, specifically for checking room name uniqueness during creation to prevent database pressure from concurrent attempts.
+
+### 2. Advanced Security & Validation
+*   **Reactive Rate Limiting:** The `auth-service` implements a robust, script-based rate-limiting filter using **Redis and Lua scripting (`rateLimiter.lua`)**. This is applied to high-traffic public endpoints like `/login` and `/register` to mitigate DoS attacks.
+*   **Internal gRPC for Validation:** The `user-service` exposes an internal gRPC service (`ValidationService`) that the `message-service` can call for high-speed, low-overhead validation checks (e.g., checking if a conversation is blocked or exists) without relying on slower HTTP or database lookups.
+*   **Secure Media Workflow:** The `media-service` enforces a two-step workflow for room profile uploads, utilizing a temporary Redis entry (`CacheUtils.kt`) to ensure the uploader has the necessary permissions (implicit pre-signed URL/token mechanism), guarding against unauthorized media manipulation.
+
+### 3. Distributed Status & Messaging
+*   **Online Status Tracking:** The `message-service` uses Redis Sets (`RedisOnlineTrackerService.kt`) to maintain real-time online status of users. This service updates user connection status on WebSocket connect/disconnect (`ChatWebSocketHandler.kt`) and is used by the Kafka producer (`KafkaEventPublisher.kt`) to determine if a message should be sent to the **real-time Kafka topic** or the **notification topic**.
+
+---
 ## 🔒 Security & Infrastructure
 
 Lynk goes beyond standard security practices by implementing a hardened, defense-in-depth infrastructure strategy.
@@ -135,23 +145,14 @@ Implementation of the "Principle of The Least Privilege":
 
 ## 🛠 Service Breakdown
 
-### 🛡 Auth Service (`auth-service`)
-*   **Role:** Identity Gateway.
-*   **Security:** Handles JWT issuance and rotation. Connects to Postgres via mTLS/SCRAM-256.
-*   **MFA:** Twilio SMS OTP and TOTP.
-
-### 💬 Message Service (`message-service`)
-*   **Role:** WebSocket Engine.
-*   **Persistence:** Writes chat logs to Cassandra (mTLS secured).
-*   **Events:** Publishes `message.received` events to Kafka (SCRAM-512 secured).
-
-### 🔔 Notification Service (`notification-service`)
-*   **Role:** Async Consumer.
-*   **Access:** Read-only ACL access to Kafka topics.
-
-### 📂 Media Service (`media-service`)
-*   **Role:** Binary Management.
-*   **Storage:** AWS S3 (via LocalStack).
+| Service                         | Primary Stack & Persistence              | Key Functionality                                                                                                         |
+|:--------------------------------|:-----------------------------------------|:--------------------------------------------------------------------------------------------------------------------------|
+| **Auth Service (8081)**         | Spring WebFlux, PG, Redis, Twilio        | Registration, Login, JWT Issuance/Rotation. **Rate Limiting (Redis/Lua).**                                                |
+| **User Service (8085)**         | Spring WebFlux, PG (R2DBC)               | User Profile (CRUD), Blocklist Management, **gRPC Conversation Validation (9090).**                                       |
+| **Message Service (8082)**      | Spring WebFlux, **Cassandra**, **Redis** | **Real-Time 1:1 & Room Chat (WebSocket).** Cassandra message persistence with **Time-Bucketing**. Online Status Tracking. |
+| **Notification Service (8083)** | Spring WebFlux, PG, Kafka, FCM           | Consumes Kafka events to send targeted **FCM/WebPush Notifications**. Registers FCM tokens via REST.                      |
+| **Media Service (8084)**        | Spring WebFlux, AWS S3, Redis            | **Secure File Upload/Download.** Image Format Validation (PNG signature check). Room/User Profile workflow.               |
+| **Room Service**                | Spring WebFlux, PG (R2DBC)               | Manages Room creation, `Membership` (Role/Join Date), and `BannedUser` logic.                                             |
 
 ---
 

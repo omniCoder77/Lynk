@@ -20,16 +20,9 @@ class RedisCacheRepository(private val reactiveRedisTemplate: ReactiveRedisTempl
         return reactiveRedisTemplate.opsForValue().set(key, serializedValue, Duration.of(ttl, unit))
     }
 
-    override fun <T> get(key: String, targetClass: Class<T>): Mono<T> {
-        return reactiveRedisTemplate.opsForValue().get(key).flatMap { value ->
-            try {
-                val data = objectMapper.readValue(value, targetClass)
-                data?.let { Mono.just(it) } ?: Mono.empty()
-            } catch (e: Exception) {
-                Mono.error(
-                    CacheDeserializationException("Failed to deserialize cache value for key: $key to ${targetClass.simpleName}", e))
-            }
-        }
+    override fun <T : Any> get(key: String, klass: Class<T>): Mono<T> {
+        return reactiveRedisTemplate.opsForValue().get(key)
+            .map { objectMapper.readValue(it, klass) }
     }
 
     override fun remove(key: String): Mono<Long> {
