@@ -36,7 +36,7 @@ commitlog_disk_access_mode: legacy
 seed_provider:
   - class_name: org.apache.cassandra.locator.SimpleSeedProvider
     parameters:
-      - seeds: "172.19.0.4"
+      - seeds: "172.19.0.2"
 concurrent_reads: 32
 concurrent_writes: 32
 concurrent_counter_writes: 32
@@ -57,13 +57,13 @@ trickle_fsync: false
 trickle_fsync_interval: 10240KiB
 storage_port: 7000
 ssl_storage_port: 7001
-listen_address: 172.19.0.4
-broadcast_address: 172.19.0.4
+listen_address: 172.19.0.2
+broadcast_address: 172.19.0.2
 start_native_transport: true
 native_transport_port: 9042
 native_transport_allow_older_protocols: true
 rpc_address: 0.0.0.0
-broadcast_rpc_address: 172.19.0.4
+broadcast_rpc_address: 172.19.0.2
 rpc_keepalive: true
 incremental_backups: false
 snapshot_before_compaction: false
@@ -95,7 +95,7 @@ server_encryption_options:
   legacy_ssl_storage_port_enabled: false
   keystore: /etc/cassandra/conf/cassandra.keystore.jks
   keystore_password: cassandra
-  require_client_auth: false
+  require_client_auth: true
   truststore: /etc/cassandra/conf/cassandra.truststore.jks
   require_endpoint_verification: true
 client_encryption_options:

@@ -8,7 +8,7 @@ cat > client_ext.cfg << 'EOF'
 [ v3_req ]
 extendedKeyUsage = serverAuth
 EOF
-openssl x509 -req -days 3650 -in postgres.csr -CA ../ssl/ca.crt -CAkey ../ssl/ca.key -CAcreateserial -out postgres.crt -extfile /tmp/client_ext.cfg -extensions v3_req
+openssl x509 -req -days 3650 -in postgres.csr -CA ../ssl/ca.crt -CAkey ../ssl/ca.key -CAcreateserial -out postgres.crt -extfile client_ext.cfg -extensions v3_req
 rm postgres.csr client_ext.cfg
 sudo chown root:postgres postgres.key postgres.crt
 sudo chmod 600 postgres.key

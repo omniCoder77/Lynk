@@ -2,3 +2,5 @@
 certfile = /etc/cassandra/conf/cassandra.crt
 validate = true
 version = TLSv1.3
+usercert = /etc/cassandra/conf/cassandra.crt
+userkey = /etc/cassandra/conf/cassandra.key
