@@ -16,13 +16,14 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init/postgres/postgres.conf:/etc/postgresql/postgresql.conf
       - ./init/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf
-      - ./init/postgres/postgres.crt:/var/lib/postgresql/data/server.crt:ro
-      - ./init/postgres/postgres.key:/var/lib/postgresql/data/server.key:ro
+      - ./init/ssl/ca.crt:/var/lib/postgresql/data/ca.crt:ro
+      - ./init/postgres/postgres.crt:/var/lib/postgresql/18/docker/server.crt
+      - ./init/postgres/postgres.key:/var/lib/postgresql/18/docker/server.key
     command: [ "postgres",
                "-c", "config_file=/etc/postgresql/postgresql.conf",
                "-c", "hba_file=/etc/postgresql/pg_hba.conf" ]
     networks:
-      - private_subnet
+      private_subnet:
 
   cassandra:
     image: cassandra:5.0.6
@@ -39,9 +40,10 @@ services:
       - ./init/cassandra/cqlshrc:/root/.cassandra/cqlshrc
       - ./init/cassandra/cassandra.truststore.jks:/etc/cassandra/conf/cassandra.truststore.jks
       - ./init/cassandra/cassandra.crt:/etc/cassandra/conf/cassandra.crt
+      - ./init/cassandra/cassandra.key:/etc/cassandra/conf/cassandra.key
       - ./init/ssl/ca.crt:/etc/cassandra/conf/ca.crt
     networks:
-      - private_subnet
+      private_subnet:
 
   redis:
     healthcheck:
@@ -54,7 +56,7 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      - private_subnet
+      private_subnet:
 
   kafka:
     image: confluentinc/cp-kafka:8.1.0
@@ -106,7 +108,7 @@ services:
       retries: 5
       start_period: 40s
     networks:
-      - private_subnet
+      private_subnet:
 
   auth-service:
     build:
@@ -119,7 +121,7 @@ services:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     environment:
-      DB_USERNAME: ${POSTGRES_USER}
+      DB_USERNAME: auth_service
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_NAME: auth_db
       DB_PORT: 5432
@@ -135,9 +137,6 @@ services:
       TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
     ports:
       - "8081:8081"
-    networks:
-      - public_subnet
-      - private_subnet
 
   message-service:
     build:
@@ -166,9 +165,6 @@ services:
       CASSANDRA_TRUSTSTORE_PASSWORD: ${CASSANDRA_TRUSTSTORE_PASSWORD}
     ports:
       - "8082:8082"
-    networks:
-      - public_subnet
-      - private_subnet
 
   notification-service:
     build:
@@ -183,7 +179,7 @@ services:
       kafka: { condition: service_healthy }
     environment:
       DB_HOST: postgres
-      DB_PORT: 9042
+      DB_PORT: 5432
       DB_NAME: notification_db
       REDIS_HOST: redis
       JWT_KEYSTORE_LOCATION: keystore.p12
@@ -196,9 +192,51 @@ services:
       REDIS_PORT: 6379
     ports:
       - "8083:8083"
-    networks:
-      - public_subnet
-      - private_subnet
+
+  media-service:
+    build:
+      context: ./media-service
+      args:
+        GRADLE_USER_HOME: /root/.gradle-message
+    container_name: media-service
+    environment:
+      AWS_ACCESS_KEY: ${AWS_ACCESS_KEY}
+      AWS_SECRET_KEY: ${AWS_SECRET_KEY}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      JWT_KEYSTORE_LOCATION: keystore.p12
+      JWT_KEYSTORE_PASSWORD: ${JWT_KEYPASSWORD}
+      JWT_KEY_PASSWORD: ${JWT_KEYPASSWORD}
+    ports:
+      - "8084:8084"
+
+  user-service:
+    build:
+      context: ./user-service
+      args:
+        GRADLE_USER_HOME: /root/.gradle-user
+    container_name: user-service
+    image: user-service
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: user_db
+      REDIS_HOST: redis
+      DB_USERNAME: user_service
+      JWT_KEYSTORE_LOCATION: keystore.p12
+      JWT_KEYSTORE_PASSWORD: ${JWT_KEYPASSWORD}
+      JWT_KEY_PASSWORD: ${JWT_KEYPASSWORD}
+      KAFKA_SSL_TRUSTSTORE_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_SSL_KEYSTORE_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_SSL_KEY_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_HOST: kafka
+      REDIS_PORT: 6379
+    ports:
+      - "8085:8085"
+      - "9090:9090"  # RPC port
 
 networks:
   private_subnet:

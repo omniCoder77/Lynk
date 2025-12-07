@@ -196,7 +196,16 @@ docker compose up -d cassandra postgres kafka
 
 **Initialize Cassandra Schema:**
 ```bash
-docker exec -it cassandra cqlsh -f /init/init-cassandra.cql
+mkdir -p ~/.cassandra
+MY_CASSANDRA_PATH=$(pwd)
+cat > ~/.cassandra/cqlshrc << EOF
+certfile = $MY_CASSANDRA_PATH/init/cassandra.crt
+validate = true
+version = TLSv1.3
+usercert = $MY_CASSANDRA_PATH/init/cassandra.crt
+userkey = $MY_CASSANDRA_PATH/init/cassandra.key
+EOF
+docker exec -i cassandra cqlsh --ssl -u cassandra -p cassandra < init/init-cassandra.cql
 ```
 
 ### 4. Apply Security Configurations (ACLs)

@@ -1,7 +1,7 @@
 CREATE KEYSPACE IF NOT EXISTS message_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}
 AND durable_writes = true;
 
-CREATE ROLE message_user WITH PASSWORD = 'message-user-password' AND LOGIN = true;
+CREATE ROLE IF NOT EXISTS message_user WITH PASSWORD = 'message-user-password' AND LOGIN = true;
 GRANT ALL PERMISSIONS ON KEYSPACE message_keyspace TO message_user;
 GRANT SELECT, MODIFY ON KEYSPACE message_keyspace TO message_user;
 
