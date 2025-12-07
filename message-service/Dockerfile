@@ -33,6 +33,7 @@ COPY keystore.p12 ./
 COPY kafka.keystore.pkcs12 ./
 COPY kafka.truststore.jks ./
 COPY cassandra.truststore.jks ./
+COPY cassandra-client.p12 ./
 
 COPY --from=builder /app/build/libs/*.jar app.jar
 

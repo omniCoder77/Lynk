@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration
 import java.io.FileInputStream
 import java.security.KeyStore
 import java.security.SecureRandom
+import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManagerFactory
 
@@ -16,6 +17,8 @@ class CassandraConfig(
     @Value("\${spring.cassandra.password}") private val password: String,
     @Value("\${cassandra.truststore.password}") private val truststorePassword: String,
     @Value("\${cassandra.truststore.location}") private val trustStoreLocation: String,
+    @Value("\${cassandra.keystore.location}") private val keyStoreLocation: String,
+    @Value("\${cassandra.keystore.password:cassandra}") private val keyStorePassword: String,
 ) {
     @Bean
     fun cqlSessionBuilderCustomizer(): CqlSessionBuilderCustomizer {
@@ -27,19 +30,30 @@ class CassandraConfig(
     }
 
     private fun createSslContext(): SSLContext {
-        val truststorePassword = truststorePassword.toCharArray()
+        val trustStorePassChars = truststorePassword.toCharArray()
+        val keyStorePassChars = keyStorePassword.toCharArray() // Get Keystore password
 
         val trustStore = KeyStore.getInstance("JKS")
         FileInputStream(trustStoreLocation).use { fis ->
-            trustStore.load(fis, truststorePassword)
+            trustStore.load(fis, trustStorePassChars)
         }
-
         val trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
         trustManagerFactory.init(trustStore)
 
+        val keyStore = KeyStore.getInstance("PKCS12")
+        FileInputStream(keyStoreLocation).use { fis ->
+            keyStore.load(fis, keyStorePassChars)
+        }
+
+        val keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
+        keyManagerFactory.init(keyStore, keyStorePassChars)
+
         val sslContext = SSLContext.getInstance("TLS")
+
         sslContext.init(
-            null, trustManagerFactory.trustManagers, SecureRandom()
+            keyManagerFactory.keyManagers,
+            trustManagerFactory.trustManagers,
+            SecureRandom()
         )
 
         return sslContext
