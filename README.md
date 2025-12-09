@@ -176,7 +176,7 @@ Because Lynk runs with full security enabled, you **must** generate the mTLS cer
 ```bash
 chmod +x init/*.sh
 ./init/generate_ca..sh
-./init/generate_jwt..sh
+./init/generate_jwt.sh
 ```
 
 **Generate Component-Specific Certs:**
