@@ -197,7 +197,7 @@ docker compose up -d cassandra postgres kafka
 **Initialize Cassandra Schema:**
 ```bash
 mkdir -p ~/.cassandra
-MY_CASSANDRA_PATH=$(pwd)
+MY_CASSANDRA_PATH="$(pwd)"
 cat > ~/.cassandra/cqlshrc << EOF
 [ssl]
 certfile = $MY_CASSANDRA_PATH/init/cassandra.crt
