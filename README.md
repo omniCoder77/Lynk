@@ -199,6 +199,7 @@ docker compose up -d cassandra postgres kafka
 mkdir -p ~/.cassandra
 MY_CASSANDRA_PATH=$(pwd)
 cat > ~/.cassandra/cqlshrc << EOF
+[ssl]
 certfile = $MY_CASSANDRA_PATH/init/cassandra.crt
 validate = true
 version = TLSv1.3
