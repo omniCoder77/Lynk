@@ -96,6 +96,8 @@ services:
       KAFKA_AUTHORIZER_CLASS_NAME: org.apache.kafka.metadata.authorizer.StandardAuthorizer
       KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
 
+      KAKFA_IDEMPOTENCE_ENABLED: true
+
     ports:
       - "9092:9092"
 
