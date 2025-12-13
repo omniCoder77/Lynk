@@ -25,21 +25,20 @@ class RoomController(private val roomService: RoomService) {
     fun createRoom(
         authenticationToken: LynkAuthenticationToken, @RequestBody createRoomRequest: CreateRoomRequest
     ): Mono<ResponseEntity<String>> {
-        try {
-            UUID.fromString(authenticationToken.userId)
-        } catch (e: IllegalArgumentException) {
-            logger.error("Invalid userId, get a valid authentication token", e)
-            return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).build())
-        }
 
+        val creatorId = UUID.fromString(authenticationToken.userId)
         val room = Room(
             roomId = UUID.randomUUID(),
             name = createRoomRequest.roomName,
             maxSize = createRoomRequest.maxSize,
             visibility = createRoomRequest.visibility,
         )
-        return roomService.create(room).map {
-            ResponseEntity.status(HttpStatus.CREATED).body("Room created with id: ${room.roomId}")
+        return roomService.create(room, creatorId).flatMap { success ->
+            if (success) {
+                Mono.just(ResponseEntity.status(HttpStatus.CREATED).body("Room created with id: ${room.roomId}"))
+            } else {
+                Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create room"))
+            }
         }.onErrorResume { error ->
             when (error) {
                 is RoomAlreadyExistsException -> Mono.just(

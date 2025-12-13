@@ -1,10 +1,14 @@
 CREATE DATABASE auth_db;
 
 \c auth_db;
-CREATE USER auth_service WITH PASSWORD 'auth_service_password';
+CREATE USER auth_service;
 GRANT CONNECT ON DATABASE auth_db TO auth_service;
 GRANT ALL PRIVILEGES ON DATABASE auth_db TO auth_service;
 GRANT ALL PRIVILEGES ON TABLE users TO auth_service;
+CREATE USER room_service;
+GRANT CONNECT ON DATABASE room_db TO room_service;
+GRANT ALL PRIVILEGES ON DATABASE room_db TO room_service;
+GRANT ALL PRIVILEGES ON TABLE room TO room_service;
 
 CREATE TABLE users
 (
@@ -80,6 +84,59 @@ CREATE TABLE IF NOT EXISTS blocklist (
     CONSTRAINT chk_blocklist_self CHECK (user_id <> blocked_user_id),
     CONSTRAINT uq_blocklist_entry UNIQUE (user_id, blocked_user_id)
 );
+
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+CREATE TYPE visibility_status AS ENUM (
+    'PUBLIC',
+    'PRIVATE',
+    'INVITE_ONLY'
+);
+
+CREATE TYPE room_role AS ENUM (
+    'ADMIN',
+    'MEMBER',
+    'MODERATOR'
+);
+
+CREATE TABLE room (
+                      room_id UUID PRIMARY KEY,
+                      name VARCHAR(255) NOT NULL,
+                      max_size INTEGER NOT NULL DEFAULT 100,
+                      visibility VARCHAR(20) NOT NULL DEFAULT 'PUBLIC',
+                      CONSTRAINT uq_room_name UNIQUE (name),
+                      CONSTRAINT chk_room_max_size CHECK (max_size > 0)
+);
+CREATE INDEX idx_room_name ON room(name);
+
+CREATE TABLE membership (
+                            membership_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                            user_id UUID NOT NULL,
+                            room_id UUID NOT NULL,
+                            joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                            role room_role NOT NULL,
+                            CONSTRAINT fk_membership_room
+                                FOREIGN KEY (room_id)
+                                    REFERENCES room(room_id)
+                                    ON DELETE CASCADE,
+                            CONSTRAINT uq_membership_user_room UNIQUE (user_id, room_id)
+);
+CREATE INDEX idx_membership_room_id ON membership(room_id);
+CREATE INDEX idx_membership_user_id ON membership(user_id);
+CREATE TABLE banned_users (
+                              ban_id UUID PRIMARY KEY,
+                              user_id UUID NOT NULL,
+                              room_id UUID NOT NULL,
+                              reason TEXT NOT NULL DEFAULT '',
+                              banned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                              banned_until TIMESTAMPTZ, -- Nullable implies permanent ban
+                              CONSTRAINT fk_ban_room
+                                  FOREIGN KEY (room_id)
+                                      REFERENCES room (room_id)
+                                      ON DELETE CASCADE,
+                              CONSTRAINT uq_banned_user_room UNIQUE (user_id, room_id)
+);
+CREATE INDEX idx_banned_users_lookup ON banned_users(user_id, room_id);
 
 CREATE INDEX IF NOT EXISTS idx_blocklist_user_id ON blocklist(user_id);
 

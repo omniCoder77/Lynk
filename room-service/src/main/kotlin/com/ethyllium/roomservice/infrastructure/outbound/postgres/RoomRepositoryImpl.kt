@@ -28,7 +28,7 @@ class RoomRepositoryImpl(private val r2dbcEntityTemplate: R2dbcEntityTemplate) :
             if (error is DataIntegrityViolationException && isDuplicateNameError(error)) {
                 Mono.error(RoomAlreadyExistsException("Room with name '${room.name}' already exists"))
             } else {
-                Mono.just(false)
+                Mono.error(error)
             }
         }
     }

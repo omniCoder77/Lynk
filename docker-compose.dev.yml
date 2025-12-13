@@ -241,6 +241,33 @@ services:
       - "8085:8085"
       - "9090:9090"  # RPC port
 
+  room-service:
+    build:
+      context: ./room-service
+      args:
+        GRADLE_USER_HOME: /root/.gradle-room
+    container_name: room-service
+    image: room-service
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: room_db
+      REDIS_HOST: redis
+      DB_USERNAME: room_service
+      JWT_KEYSTORE_LOCATION: keystore.p12
+      JWT_KEYSTORE_PASSWORD: ${JWT_KEYPASSWORD}
+      JWT_KEY_PASSWORD: ${JWT_KEYPASSWORD}
+      KAFKA_SSL_TRUSTSTORE_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_SSL_KEYSTORE_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_SSL_KEY_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_HOST: kafka
+      REDIS_PORT: 6379
+    ports:
+      - "8086:8086"
+
 
 volumes:
   postgres_data:
