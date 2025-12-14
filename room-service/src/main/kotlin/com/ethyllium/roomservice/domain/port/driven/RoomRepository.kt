@@ -6,8 +6,8 @@ import reactor.core.publisher.Mono
 import java.util.UUID
 
 interface RoomRepository {
-    fun insert(room: Room): Mono<Boolean>
-    fun update(name: String? = null, maxSize: Int? = null, visibility: Visibility? = null, roomId: UUID): Mono<Boolean>
-    fun delete(roomId: UUID): Mono<Boolean>
+    fun insert(room: Room): Mono<Void>
+    fun update(name: String? = null, maxSize: Int? = null, visibility: Visibility? = null, roomId: UUID): Mono<Long>
+    fun delete(roomId: UUID): Mono<Long>
     fun select(roomId: UUID): Mono<Room>
 }

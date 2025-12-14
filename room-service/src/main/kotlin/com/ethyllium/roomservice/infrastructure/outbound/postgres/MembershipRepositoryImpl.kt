@@ -5,47 +5,61 @@ import com.ethyllium.roomservice.domain.model.RoomRole
 import com.ethyllium.roomservice.domain.port.driven.MembershipRepository
 import com.ethyllium.roomservice.infrastructure.outbound.postgres.entity.MembershipEntity
 import com.ethyllium.roomservice.infrastructure.outbound.postgres.entity.toEntity
-import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria
 import org.springframework.data.relational.core.query.Query
 import org.springframework.data.relational.core.query.Update
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Mono
-import java.util.UUID
+import java.util.*
 
 @Repository
-class MembershipRepositoryImpl(private val r2dbcEntityTemplate: R2dbcEntityTemplate) : MembershipRepository {
+class MembershipRepositoryImpl(
+    private val r2dbcEntityTemplate: R2dbcEntityTemplate
+) : MembershipRepository {
 
-    private val logger = LoggerFactory.getLogger(this::class.java)
+    override fun insert(membership: Membership): Mono<Void> =
+        r2dbcEntityTemplate.insert(membership.toEntity()).then()
 
-    override fun insert(membership: Membership): Mono<Boolean> {
-        return r2dbcEntityTemplate.insert(membership.toEntity()).map { true }.onErrorResume {
-            logger.error("Error inserting membership for user ${membership.userId} in room ${membership.roomId}")
-            Mono.just(false)
+    override fun update(role: RoomRole, membershipId: UUID): Mono<Long> {
+        val update = Update.update("role", role.name)
+        val query = Query.query(Criteria.where("membership_id").`is`(membershipId))
+        return r2dbcEntityTemplate.update(query, update, MembershipEntity::class.java)
+    }
+
+    override fun delete(
+        membershipId: UUID,
+        roomId: UUID?,
+        role: RoomRole?
+    ): Mono<Long> {
+        var criteria = Criteria.where("membership_id").`is`(membershipId)
+        roomId?.let { criteria = criteria.and("room_id").`is`(it) }
+        role?.let { criteria = criteria.and("role").`is`(it.name) }
+
+        val query = Query.query(criteria)
+        return r2dbcEntityTemplate.delete(query, MembershipEntity::class.java)
+    }
+
+    override fun select(
+        membershipId: UUID,
+        roomId: UUID?,
+        roles: Array<RoomRole>
+    ): Mono<Membership> {
+
+        var criteria = Criteria.where("user_id").`is`(membershipId)
+
+        roomId?.let {
+            criteria = criteria.and("room_id").`is`(it)
         }
-    }
 
-    override fun update(role: RoomRole, membershipId: UUID): Mono<Boolean> {
-        val update = Update.update("role", role)
-        val query = Query.query(Criteria.where("membership_id").`is`(membershipId))
-        return r2dbcEntityTemplate.update(
-            query, update, MembershipEntity::class.java
-        ).map { it > 0 }
-    }
-
-    override fun delete(membershipId: UUID): Mono<Boolean> {
-        val query = Query.query(Criteria.where("membership_id").`is`(membershipId))
-        return r2dbcEntityTemplate.delete(query, MembershipEntity::class.java).map { true }.onErrorResume {
-            logger.warn("Error deleting room $membershipId")
-            Mono.just(false)
+        if (roles.isNotEmpty()) {
+            criteria = criteria.and("role").`in`(roles.map { it.name })
         }
-    }
 
-    override fun select(membershipId: UUID): Mono<Membership> {
-        val query = Query.query(Criteria.where("membership_id").`is`(membershipId))
-        return r2dbcEntityTemplate.selectOne(
-            query, MembershipEntity::class.java
-        ).map { it.toDomain() }
+        val query = Query.query(criteria)
+
+        return r2dbcEntityTemplate
+            .selectOne(query, MembershipEntity::class.java)
+            .map { it.toDomain() }
     }
 }

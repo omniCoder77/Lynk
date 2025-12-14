@@ -9,6 +9,8 @@ CREATE USER room_service;
 GRANT CONNECT ON DATABASE room_db TO room_service;
 GRANT ALL PRIVILEGES ON DATABASE room_db TO room_service;
 GRANT ALL PRIVILEGES ON TABLE room TO room_service;
+GRANT ALL PRIVILEGES ON TABLE membership TO room_service;
+GRANT ALL PRIVILEGES ON TABLE banned_users TO room_service;
 
 CREATE TABLE users
 (
@@ -87,25 +89,13 @@ CREATE TABLE IF NOT EXISTS blocklist (
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
-CREATE TYPE visibility_status AS ENUM (
-    'PUBLIC',
-    'PRIVATE',
-    'INVITE_ONLY'
-);
-
-CREATE TYPE room_role AS ENUM (
-    'ADMIN',
-    'MEMBER',
-    'MODERATOR'
-);
-
 CREATE TABLE room (
                       room_id UUID PRIMARY KEY,
                       name VARCHAR(255) NOT NULL,
                       max_size INTEGER NOT NULL DEFAULT 100,
                       visibility VARCHAR(20) NOT NULL DEFAULT 'PUBLIC',
                       CONSTRAINT uq_room_name UNIQUE (name),
-                      CONSTRAINT chk_room_max_size CHECK (max_size > 0)
+                      CONSTRAINT chk_room_max_size CHECK (max_size > 0, max_size <= 1000)
 );
 CREATE INDEX idx_room_name ON room(name);
 
@@ -114,7 +104,7 @@ CREATE TABLE membership (
                             user_id UUID NOT NULL,
                             room_id UUID NOT NULL,
                             joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                            role room_role NOT NULL,
+                            role varchar(10) NOT NULL,
                             CONSTRAINT fk_membership_room
                                 FOREIGN KEY (room_id)
                                     REFERENCES room(room_id)
@@ -129,7 +119,7 @@ CREATE TABLE banned_users (
                               room_id UUID NOT NULL,
                               reason TEXT NOT NULL DEFAULT '',
                               banned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                              banned_until TIMESTAMPTZ, -- Nullable implies permanent ban
+                              banned_until TIMESTAMPTZ,
                               CONSTRAINT fk_ban_room
                                   FOREIGN KEY (room_id)
                                       REFERENCES room (room_id)
