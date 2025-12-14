@@ -1,167 +1,226 @@
-# Lynk API Documentation
+# 📚 Lynk API Documentation
 
-This document outlines the main API endpoints for the Lynk microservices platform.
+This documentation outlines the RESTful endpoints, WebSocket events, and internal gRPC definitions for the Lynk platform.
 
-## 1. Auth Service
+## 🔐 Authentication & Security
 
-**Base URL:** `/api/v1/auth`
+**Base URL:** Varies per service (via Load Balancer/Gateway in production, mapped ports in Dev).
 
-| Endpoint                        | Method | Description                                                               | Request Body (DTO)                                                | Success Response (200 OK)                        | Error Codes                                                                   |
-|---------------------------------|--------|---------------------------------------------------------------------------|-------------------------------------------------------------------|--------------------------------------------------|-------------------------------------------------------------------------------|
-| `/register`                     | `POST` | Registers a new user and initiates OTP verification.                      | `RegisterRequest`                                                 | `RegisterResponse.OTP` or `RegisterResponse.MFA` | 400 (Bad Request), 500 (SMS Send Failed)                                      |
-| `/register/{phoneNumber}/{otp}` | `GET`  | Verifies the OTP sent during registration.                                | None                                                              | `RegisterResponse.Token`                         | 400 (Invalid OTP), 408 (Expired OTP)                                          |
-| `/login`                        | `POST` | Authenticates a user. Handles TOTP and non-enabled (OTP required) states. | `LoginRequest`                                                    | `LoginResponse.Token`                            | 403 (OTP Sent), 404 (User Not Found), 401 (TOTP Invalid), 400 (TOTP Required) |
-| `/logout`                       | `POST` | Invalidates the user's current access token.                              | None (`Authorization` Header required)                            | `200 OK`                                         | 500 (Internal Server Error)                                                   |
-| `/token/refresh`                | `POST` | Generates a new access token using a valid refresh token.                 | None (`Authorization` Header required - containing refresh token) | `200 OK` (New Access Token as String)            | 400 (Invalid Token)                                                           |
-
-### Request DTOs
-
-**`RegisterRequest`**
-```json
-{
-  "phoneNumber": "String",
-  "firstName": "String",
-  "lastName": "String",
-  "mfa": "Boolean"
-}
+**Headers:**
+Unless specified as **Public**, all endpoints require the following header:
+```http
+Authorization: Bearer <access_token>
 ```
 
-**`LoginRequest`**
-```json
-{
-  "phoneNumber": "String",
-  "totp": "String?"
-}
-```
-
-### Response DTOs
-
-**`RegisterResponse` (Sealed Interface with type property)**
-| Type | Example | Description |
-|---|---|---|
-| `otp` | `{ "type": "otp" }` | OTP has been sent to the phone number. |
-| `mfa` | `{ "type": "mfa", "qrCode": "base64_qr_code" }` | MFA is enabled, return the QR code to set up. |
-| `token` | `{ "type": "token", "accessToken": "...", "refreshToken": "..." }` | OTP verified, returns JWT tokens. |
-
-**`LoginResponse` (Sealed Interface with Status Codes)**
-| Status | Type | Example | Description |
-|---|---|---|---|
-| 200 OK | `Token` | `{ "accessToken": "...", "refreshToken": "..." }` | Successful login. |
-| 403 Forbidden | `OtpSent` | `{ "message": "Please enter the OTP..." }` | User is not enabled; OTP sent for first login. |
-| 400 Bad Request | `TotpRequired` | `{ "message": "TOTP is required..." }` | User has MFA enabled but `totp` field is missing. |
-| 401 Unauthorized | `TotpInvalid` | `{ "message": "Invalid totp given" }` | Provided TOTP code is incorrect. |
-| 404 Not Found | `UserNotFound` | `{ "message": "User not found..." }` | The phone number does not correspond to a registered user. |
+**Common Response Codes:**
+*   `200 OK` - Success
+*   `201 Created` - Resource created successfully
+*   `400 Bad Request` - Validation error
+*   `401 Unauthorized` - Invalid or expired token
+*   `403 Forbidden` - Insufficient permissions (e.g., Non-Admin trying to kick user)
+*   `404 Not Found` - Resource does not exist
+*   `429 Too Many Requests` - Rate limit exceeded
 
 ---
 
-## 2. Message Service
+## 🛡️ Auth Service
+**Port:** `8081`
 
-**Base URL:** `/api/v1/rooms`
+Handles user registration, login, and session management.
 
-**All endpoints require an `Authorization: Bearer <access-token>` header.**
+### Register
+**`POST /api/v1/auth/register`** (Public)
+Initiates user registration. Sends an OTP via SMS.
 
-### Room Management (HTTP)
-
-| Endpoint             | Method | Description                                                                   | Request Body (DTO)                               | Success Response (201/200)                | Error Codes                         |
-|----------------------|--------|-------------------------------------------------------------------------------|--------------------------------------------------|-------------------------------------------|-------------------------------------|
-| `/`                  | `POST` | Creates a new room and sets the creator as ADMIN.                             | `CreateRoomRequest`                              | `201 Created` with `{ "roomId": "UUID" }` | 403 (Invalid Creator ID)            |
-| `/`                  | `GET`  | Retrieves all rooms the authenticated user is a member of.                    | None                                             | `200 OK` (`Flux<Room>`)                   | 401 (Unauthorized)                  |
-| `/{roomId}`          | `PUT`  | Updates room details (name, description, avatar URL). Only ADMINs can update. | `UpdateRoomRequest`                              | `200 OK`                                  | 401 (Unauthorized), 403 (Not Admin) |
-| `/{roomId}/members`  | `GET`  | Retrieves all members of a specific room.                                     | None                                             | `200 OK` (`List<RoomMemberResponse>`)     | 401 (Unauthorized)                  |
-| `/{roomId}/members`  | `POST` | Adds a new member to a room. Only ADMINs can add.                             | `AddRoomMemberRequest`                           | `201 Created`                             | 401 (Unauthorized), 403 (Not Admin) |
-| `/{roomId}/messages` | `GET`  | Retrieves messages for a room within a time range.                            | Query Params: `start`, `end` (Instant, optional) | `200 OK` (`List<MessageResponse>`)        | 401 (Unauthorized)                  |
-| `/{roomId}/messages` | `POST` | Sends a message to a room.                                                    | `SendMessageRequest`                             | `201 Created`                             | 500 (Internal Error)                |
-
-### Request DTOs for Room Management
-
-**`CreateRoomRequest`**
+**Body:**
 ```json
 {
-  "name": "String",
-  "description": "String?",
-  "initialMemberIds": ["UUID"]
+  "firstName": "John",
+  "lastName": "Doe",
+  "phoneNumber": "+1234567890",
+  "mfa": true
 }
 ```
 
-**`UpdateRoomRequest`**
+**Response:**
+*   `200 OK`: `{"type": "otp"}` (OTP sent)
+*   `200 OK`: `{"type": "mfa", "qrCode": "base64..."}` (If MFA enabled)
+
+### Verify Registration OTP
+**`GET /api/v1/auth/register/{phoneNumber}/{otp}`** (Public)
+Verifies the SMS OTP to complete registration.
+
+**Response:**
 ```json
 {
-  "name": "String?",
-  "description": "String?",
-  "avatarUrl": "String?"
+  "type": "token",
+  "accessToken": "eyJhbG...",
+  "refreshToken": "eyJhbG..."
 }
 ```
 
-**`AddRoomMemberRequest`**
+### Login
+**`POST /api/v1/auth/login`** (Public)
+Login via Phone Number. May trigger OTP or require TOTP.
+
+**Body:**
 ```json
 {
-  "memberId": "UUID",
-  "role": "RoomRole"
+  "phoneNumber": "+1234567890",
+  "totp": "123456"
 }
 ```
 
-**`SendMessageRequest`**
-```json
-{
-  "content": "String",
-  "replyToMessageId": "UUID?",
-  "timestamp": "Instant"
-}
-```
+**Response:**
+*   `200 OK`: `{"accessToken": "...", "refreshToken": "..."}`
+*   `403 Forbidden`: `{"message": "OTP Sent..."}` (OTP triggered, user needs to wait/verify)
+*   `400 Bad Request`: `{"message": "TOTP required"}`
 
-### Real-time Communication (WebSockets)
+### Refresh Token
+**`POST /api/v1/token/refresh`**
+Refreshes an expired access token using a valid refresh token.
 
-**Protocols:** Standard WebSocket (`ws://` or `wss://`). Authentication is handled by passing the JWT in the initial HTTP upgrade handshake (or potentially as a query parameter if configured).
+**Headers:**
+`Authorization: Bearer <refresh_token>`
 
-| Endpoint | Protocol | Description | Message Format (DTO) |
-|---|---|---|---|
-| `/ws/chat` | WebSocket | Used for real-time one-on-one message exchange. | `ChatWebsocketMessage` (JSON) |
-| `/ws/room` | WebSocket | Used for real-time room/group message exchange. | `RoomWebsocketMessage` (JSON) |
-
-**`ChatWebsocketMessage` (Sent by Client)**
-```json
-{
-  "recipientId": "String (UUID)",
-  "replyToMessageId": "String (UUID)?",
-  "content": "String",
-  "timestamp": "Instant"
-}
-```
-
-**`RoomWebsocketMessage` (Sent by Client)**
-```json
-{
-  "roomId": "String (UUID)",
-  "replyToMessageId": "String (UUID)?",
-  "content": "String",
-  "timestamp": "Instant"
-}
-```
+### Logout
+**`POST /api/v1/auth/logout`**
+Invalidates the current session.
 
 ---
 
-## 3. Notification Service
+## 👤 User Service
+**Port:** `8085`
 
-**Base URL:** `/api/v1`
+Manages user profiles, blocking logic, and 1:1 conversation metadata.
 
-**All endpoints require an `Authorization: Bearer <access-token>` header.**
+### User Profile
+*   **`GET /users/me`**: Get current user details.
+*   **`GET /users/{userId}`**: Get public profile of another user.
+*   **`GET /users/search?username=john&page=0&size=20`**: Search users.
+*   **`PATCH /users/me`**: Update profile.
+    *   **Params:** `username`, `bio`, `profile` (avatar URL).
 
-| Endpoint             | Method | Description                                                                           | Success Response (200 OK)                      | Error Codes                              |
-|----------------------|--------|---------------------------------------------------------------------------------------|------------------------------------------------|------------------------------------------|
-| `/token/{token}`     | `POST` | Saves the client's FCM device token for push notifications.                           | `200 OK` ("Successfully registered the token") | 400 (Invalid JWT)                        |
-| `/subscribe/{topic}` | `POST` | Subscribes the authenticated user's device to a specific FCM topic (e.g., a Room ID). | `200 OK`                                       | 400 (Invalid JWT), 404 (Token not found) |
+### Conversations (1:1 Metadata)
+*   **`POST /conversation`**: Initialize a conversation.
+    *   **Body:** `{"userId": "uuid-of-recipient"}`
+*   **`GET /conversation`**: List all active 1:1 conversations.
+*   **`DELETE /conversation/{recipientId}`**: Delete a conversation.
+*   **`PATCH /conversation/block/{userId}`**: Block a user.
+*   **`PATCH /conversation/unblock/{userId}`**: Unblock a user.
+*   **`GET /users/me/blocked`**: List blocked users.
 
 ---
 
-## 4. Media Service
+## 🚪 Room Service
+**Port:** `8086`
 
-**Base URL:** `/api/v1/media`
+Handles Group metadata, membership logic, roles, and moderation (bans/kicks).
 
-**All endpoints require an `Authorization: Bearer <access-token>` header.**
+### Room Management
+*   **`POST /rooms`**: Create a new room.
+    *   **Body:**
+    ```json
+    {
+      "idempotencyKey": "uuid",
+      "roomName": "Tech Talk",
+      "maxSize": 100,
+      "visibility": "PUBLIC"
+    }
+    ```
+*   **`PATCH /rooms`**: Update room details (Admin/Mod).
+*   **`DELETE /rooms/{roomId}`**: Delete a room (Admin).
 
-| Endpoint      | Method   | Description                     | Security Role     | Request Body                           | Success Response (200 OK)                            | Error Codes          |
-|---------------|----------|---------------------------------|-------------------|----------------------------------------|------------------------------------------------------|----------------------|
-| `/`           | `POST`   | Uploads a new media file.       | `USER` or `ADMIN` | `multipart/form-data` with `file` part | `200 OK` (`{ "message": "...", "fileName": "..." }`) | 400 (Upload Failed)  |
-| `/{fileName}` | `GET`    | Downloads a media file.         | `USER` or `ADMIN` | None                                   | `200 OK` (File as `application/octet-stream`)        | 404 (File Not Found) |
-| `/{fileName}` | `PUT`    | Updates an existing media file. | `USER` or `ADMIN` | `multipart/form-data` with `file` part | `200 OK` (`{ "message": "..." }`)                    | 400 (Update Failed)  |
-| `/{fileName}` | `DELETE` | Deletes a media file.           | `ADMIN`           | None                                   | `200 OK` (`{ "message": "..." }`)                    | 400 (Delete Failed)  |
+### Membership
+*   **`POST /memberships/{roomId}`**: Join a public room.
+*   **`POST /memberships/leave/{roomId}`**: Leave a room.
+*   **`POST /memberships/kick/{userId}/{roomId}`**: Kick a user (Admin/Mod).
+*   **`GET /memberships/{roomId}/members`**: List all members in a room.
+*   **`GET /memberships/my-rooms`**: List rooms the current user has joined.
+
+### Moderation (Ban System)
+*   **`POST /ban/{roomId}/{userId}`**: Ban a user from the room (Mod+).
+*   **`DELETE /ban/{roomId}/{userId}`**: Unban a user (Mod+).
+
+---
+
+## 💬 Message Service
+**Port:** `8082`
+
+Handles real-time chat persistence (Cassandra), WebSocket connections, and online status.
+
+### Room Chat History
+*   **`GET /api/v1/rooms/{roomId}/messages`**: Get chat history.
+    *   **Params:** `start` (Instant), `end` (Instant).
+*   **`POST /api/v1/rooms/{roomId}/messages`**: Send a message via REST (Alternative to WS).
+    *   **Body:** `{"content": "Hello", "replyToMessageId": "uuid"}`
+
+### Room Metadata (Cassandra View)
+*   **`POST /api/v1/rooms`**: Create chat room bucket.
+*   **`GET /api/v1/rooms`**: Get user's chat rooms.
+*   **`POST /api/v1/rooms/{roomId}/members`**: Add member to chat bucket.
+
+### 🔌 WebSockets
+
+**1. 1:1 Chat**
+*   **Endpoint:** `ws://localhost:8082/ws/chat`
+*   **Auth:** Bearer Token in Handshake headers.
+*   **Payload (Send):**
+    ```json
+    {
+      "recipientId": "uuid",
+      "content": "Hello world",
+      "replyToMessageId": "uuid (optional)"
+    }
+    ```
+
+**2. Group Chat**
+*   **Endpoint:** `ws://localhost:8082/ws/room`
+*   **Payload (Send):**
+    ```json
+    {
+      "roomId": "uuid",
+      "content": "Hello Team",
+      "replyToMessageId": "uuid (optional)"
+    }
+    ```
+
+---
+
+## 📸 Media Service
+**Port:** `8084`
+
+Handles secure file uploads to S3.
+
+### Profile Images
+*   **`POST /api/v1/media/user-profile`**: Upload user avatar.
+    *   **Content-Type:** `multipart/form-data`
+    *   **Key:** `file`
+*   **`POST /api/v1/media/room-profile`**: Upload room avatar.
+    *   **Pre-requisite:** Requires a valid session/cache entry validating the user is the room admin.
+
+### File Management
+*   **`GET /api/v1/media/{fileName}`**: Download/Stream file.
+*   **`PUT /api/v1/media/{fileName}`**: Update existing file.
+*   **`DELETE /api/v1/media/{fileName}`**: Delete file (Admin only).
+
+---
+
+## 🔔 Notification Service
+**Port:** `8083`
+
+Manages FCM tokens and push notifications.
+
+*   **`POST /api/v1/token/{fcmToken}`**: Register a device's FCM token for the current user.
+*   **`POST /api/v1/subscribe/{topic}`**: Subscribe the current user's device to a specific notification topic (e.g., `chat_room_123`).
+
+---
+
+## 🔗 Internal gRPC
+**Port:** `9090` (User Service)
+
+Used for inter-service communication (primarily Message Service checking validation rules).
+
+**Service:** `ValidationService`
+*   **`validateConversation(ConversationValidationRequest)`**: Checks if a sender/recipient pair is valid (exists and not blocked).
+    *   Returns: `OK`, `NOT_FOUND`, `SENDER_BLOCKED_RECIPIENT`, `RECIPIENT_BLOCKED_SENDER`.

@@ -152,14 +152,14 @@ Implementation of the "Principle of The Least Privilege":
 | **Message Service (8082)**      | Spring WebFlux, **Cassandra**, **Redis** | **Real-Time 1:1 & Room Chat (WebSocket).** Cassandra message persistence with **Time-Bucketing**. Online Status Tracking. |
 | **Notification Service (8083)** | Spring WebFlux, PG, Kafka, FCM           | Consumes Kafka events to send targeted **FCM/WebPush Notifications**. Registers FCM tokens via REST.                      |
 | **Media Service (8084)**        | Spring WebFlux, AWS S3, Redis            | **Secure File Upload/Download.** Image Format Validation (PNG signature check). Room/User Profile workflow.               |
-| **Room Service**                | Spring WebFlux, PG (R2DBC)               | Manages Room creation, `Membership` (Role/Join Date), and `BannedUser` logic.                                             |
+| **Room Service (8086)**         | Spring WebFlux, PG (R2DBC)               | Manages Room creation, `Membership` (Role/Join Date), Banning/Kicking logic, and Visibility.                              |
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-*   **JDK 17+**
+*   **JDK 21**
 *   **Docker & Docker Compose** (v2.0+)
 *   **OpenSSL** (Required for mTLS cert generation)
 
@@ -170,12 +170,17 @@ cd Lynk
 ```
 
 ### 2. Infrastructure Security Setup (Crucial)
-Because Lynk runs with full security enabled, you **must** generate the mTLS certificates and credentials before starting the containers.
+Because Lynk runs with full security enabled, you **must** generate the mTLS certificates, credentials, and environment variables before starting the containers.
+
+**Initialize Environment & Secrets:**
+This script will prompt for external keys (Twilio, AWS) and generate internal secrets.
+```bash
+chmod +x init/*.sh
+```
 
 **Generate Root CA and Service Certificates:**
 ```bash
-chmod +x init/*.sh
-./init/generate_ca..sh
+./init/generate_ca.sh
 ./init/generate_jwt.sh
 ```
 
@@ -191,21 +196,24 @@ chmod +x init/*.sh
 Start the persistence layer first.
 
 ```bash
-docker compose up -d cassandra postgres kafka
+docker compose -f docker-compose.prod.yml up -d cassandra postgres kafka redis
 ```
 
 **Initialize Cassandra Schema:**
+To run `cqlsh` against the secure Cassandra container, we configure it to use the certificates mounted inside the container.
+
 ```bash
-mkdir -p ~/.cassandra
-MY_CASSANDRA_PATH="$(pwd)"
-cat > ~/.cassandra/cqlshrc << EOF
+# Create a local config pointing to the container's internal cert paths
+cat > ./init/cassandra/cqlshrc << EOF
 [ssl]
-certfile = $MY_CASSANDRA_PATH/init/cassandra.crt
+certfile = /etc/cassandra/conf/cassandra.crt
 validate = true
 version = TLSv1.3
-usercert = $MY_CASSANDRA_PATH/init/cassandra.crt
-userkey = $MY_CASSANDRA_PATH/init/cassandra.key
+usercert = /etc/cassandra/conf/cassandra.crt
+userkey = /etc/cassandra/conf/cassandra.key
 EOF
+
+# Execute the init script inside the container
 docker exec -i cassandra cqlsh --ssl -u cassandra -p cassandra < init/init-cassandra.cql
 ```
 
@@ -213,12 +221,20 @@ docker exec -i cassandra cqlsh --ssl -u cassandra -p cassandra < init/init-cassa
 Once Kafka is running, apply the Access Control Lists (ACLs) and SCRAM credentials. This script sets up the specific user permissions (e.g., *MessageService* can write to *ChatTopic*, *NotificationService* can only read).
 
 ```bash
+# Set up SCRAM Users
 docker exec kafka /usr/bin/kafka-configs --bootstrap-server localhost:9094 --alter --add-config 'SCRAM-SHA-512=[iterations=8192,password=message-service],SCRAM-SHA-512=[password=message-service]' --entity-type users --entity-name messageService
 docker exec kafka /usr/bin/kafka-configs --bootstrap-server localhost:9094 --alter --add-config 'SCRAM-SHA-512=[iterations=8192,password=notification-service],SCRAM-SHA-512=[password=notification-service]' --entity-type users --entity-name notificationService
 docker exec kafka /usr/bin/kafka-configs --bootstrap-server localhost:9094 --alter --add-config 'SCRAM-SHA-512=[iterations=8192,password=user-service],SCRAM-SHA-512=[password=user-service]' --entity-type users --entity-name userService
-docker exec kafka /usr/bin/kafka-acls --bootstrap-server localhost:9094 --add --allow-principal User:messageService --operation Write --topic room.message --topic conversation.message --topic user.created
-docker exec kafka /usr/bin/kafka-acls --bootstrap-server localhost:9094 --add --allow-principal User:notificationService --operation Read --topic room.message --topic conversation.message --topic user.created
-docker exec kafka /usr/bin/kafka-acls --bootstrap-server localhost:9094 --add --allow-principal User:userService --operation Read --topic user.created
+
+# Message Service Permissions (Write Chat / Read & Write Notifications)
+docker exec kafka /usr/bin/kafka-acls --bootstrap-server localhost:9094 --add --allow-principal User:messageService --operation Write --topic room.message --topic conversation.message --topic room.notification --topic conversation.notification
+docker exec kafka /usr/bin/kafka-acls --bootstrap-server localhost:9094 --add --allow-principal User:messageService --operation Read --topic user.created
+
+# Notification Service Permissions (Read Only)
+docker exec kafka /usr/bin/kafka-acls --bootstrap-server localhost:9094 --add --allow-principal User:notificationService --operation Read --topic room.message --topic conversation.message --topic room.notification --topic conversation.notification --topic user.created
+
+# User Service Permissions (Write User Creation)
+docker exec kafka /usr/bin/kafka-acls --bootstrap-server localhost:9094 --add --allow-principal User:userService --operation Write --topic user.created
 ```
 
 ### 5. Launch Microservices
