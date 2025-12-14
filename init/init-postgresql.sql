@@ -114,7 +114,7 @@ CREATE TABLE membership (
 CREATE INDEX idx_membership_room_id ON membership(room_id);
 CREATE INDEX idx_membership_user_id ON membership(user_id);
 CREATE TABLE banned_users (
-                              ban_id UUID PRIMARY KEY,
+                              banned_id UUID PRIMARY KEY,
                               user_id UUID NOT NULL,
                               room_id UUID NOT NULL,
                               reason TEXT NOT NULL DEFAULT '',

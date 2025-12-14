@@ -8,7 +8,7 @@ import java.util.UUID
 
 @Table(name = "banned_users")
 data class BannedUserEntity(
-    @Id val bannedId: UUID, // Created using UUIDUtils.merge()
+    @Id val bannedId: UUID, // Created using ordered/unordered UUIDUtils.merge() on userId and roomId
     val userId: UUID,
     val roomId: UUID,
     val reason: String,

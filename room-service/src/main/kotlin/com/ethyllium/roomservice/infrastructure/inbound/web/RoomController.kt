@@ -1,6 +1,5 @@
 package com.ethyllium.roomservice.infrastructure.inbound.web
 
-import com.ethyllium.roomservice.domain.exception.RoomAlreadyExistsException
 import com.ethyllium.roomservice.domain.model.Room
 import com.ethyllium.roomservice.domain.port.driver.RoomService
 import com.ethyllium.roomservice.infrastructure.inbound.web.dto.CreateRoomRequest
@@ -9,11 +8,7 @@ import com.ethyllium.roomservice.infrastructure.outbound.security.LynkAuthentica
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.PatchMapping
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
 import java.util.*
 
@@ -64,6 +59,20 @@ class RoomController(private val roomService: RoomService) {
                 Mono.just(ResponseEntity.status(HttpStatus.OK).body("Room updated successfully"))
             } else {
                 Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update room"))
+            }
+        }
+    }
+
+    @DeleteMapping("/{roomId}")
+    fun deleteRoom(
+        authenticationToken: LynkAuthenticationToken, @PathVariable roomId: UUID
+    ): Mono<ResponseEntity<String>> {
+        val deleterId = UUID.fromString(authenticationToken.userId)
+        return roomService.delete(deleterId, roomId).flatMap {
+            if (it) {
+                Mono.just(ResponseEntity.status(HttpStatus.OK).body("Room deleted successfully"))
+            } else {
+                Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to delete room"))
             }
         }
     }

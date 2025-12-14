@@ -42,4 +42,12 @@ class RoomServiceImpl(
             roomRepository.update(roomName, maxSize, visibility, roomId)
         }.map { it > 0 }
     }
+
+    override fun delete(deleterId: UUID, roomId: UUID): Mono<Boolean> {
+        return membershipRepository.select(membershipId = deleterId, roomId = roomId, roles = arrayOf(RoomRole.ADMIN, RoomRole.MODERATOR)).switchIfEmpty(Mono.error(
+            UnauthorizedRoomActionException("User does not have permission to update this room"))).flatMap {
+            roomRepository.delete(roomId)
+        }.map { it > 0 }
+
+    }
 }
