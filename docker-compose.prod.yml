@@ -23,7 +23,7 @@ services:
                "-c", "config_file=/etc/postgresql/postgresql.conf",
                "-c", "hba_file=/etc/postgresql/pg_hba.conf" ]
     networks:
-      private_subnet:
+      secret_subnet:
 
   cassandra:
     image: cassandra:5.0.6
@@ -43,7 +43,7 @@ services:
       - ./init/cassandra/cassandra.key:/etc/cassandra/conf/cassandra.key
       - ./init/ssl/ca.crt:/etc/cassandra/conf/ca.crt
     networks:
-      private_subnet:
+      secret_subnet:
 
   redis:
     healthcheck:
@@ -56,7 +56,7 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      private_subnet:
+      secret_subnet:
 
   kafka:
     image: confluentinc/cp-kafka:8.1.0
@@ -96,10 +96,14 @@ services:
       KAFKA_AUTHORIZER_CLASS_NAME: org.apache.kafka.metadata.authorizer.StandardAuthorizer
       KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
 
+      KAKFA_IDEMPOTENCE_ENABLED: true
+
     volumes:
       - kafka_data:/var/lib/kafka/data
       - ./init/kafka/:/etc/kafka/secrets
       - ./init/kafka/kafka_jaas.conf:/etc/kafka/secrets/kafka_jaas.conf
+    networks:
+      secret_subnet:
 
     healthcheck:
       test: [ "CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9094 || exit 1" ]
@@ -107,8 +111,6 @@ services:
       timeout: 10s
       retries: 5
       start_period: 40s
-    networks:
-      private_subnet:
 
   auth-service:
     build:
@@ -135,8 +137,9 @@ services:
       TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
       TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER}
       TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
-    ports:
-      - "8081:8081"
+    networks:
+      secret_subnet:
+      private_subnet:
 
   message-service:
     build:
@@ -163,8 +166,9 @@ services:
       REDIS_PORT: 6379
       CASSANDRA_PASSWORD: ${CASSANDRA_PASSWORD}
       CASSANDRA_TRUSTSTORE_PASSWORD: ${CASSANDRA_TRUSTSTORE_PASSWORD}
-    ports:
-      - "8082:8082"
+    networks:
+      secret_subnet:
+      private_subnet:
 
   notification-service:
     build:
@@ -190,8 +194,27 @@ services:
       KAFKA_SSL_KEY_PASSWORD: ${KAFKA_SSL_PASSWORD}
       KAFKA_HOST: kafka
       REDIS_PORT: 6379
+    networks:
+      secret_subnet:
+      private_subnet:
+
+  gateway-service:
+    build:
+      context: ./gateway-service
+      args:
+        GRADLE_USER_HOME: /root/.gradle-gateway
+    container_name: gateway-service
+    image: gateway-service
+    depends_on:
+      redis: { condition: service_healthy }
+      auth-service: { condition: service_started }
+    environment:
+      REDIS_HOST: redis
     ports:
-      - "8083:8083"
+      - "8080:8080"
+    networks:
+      private_subnet:
+      public_subnet:
 
   media-service:
     build:
@@ -206,8 +229,9 @@ services:
       JWT_KEYSTORE_LOCATION: keystore.p12
       JWT_KEYSTORE_PASSWORD: ${JWT_KEYPASSWORD}
       JWT_KEY_PASSWORD: ${JWT_KEYPASSWORD}
-    ports:
-      - "8084:8084"
+    networks:
+      secret_subnet:
+      private_subnet:
 
   user-service:
     build:
@@ -234,23 +258,37 @@ services:
       KAFKA_SSL_KEY_PASSWORD: ${KAFKA_SSL_PASSWORD}
       KAFKA_HOST: kafka
       REDIS_PORT: 6379
-    ports:
-      - "8085:8085"
-      - "9090:9090"  # RPC port
+    networks:
+      secret_subnet:
+      private_subnet:
 
-networks:
-  private_subnet:
-    driver: bridge
-    internal: true
-    ipam:
-      config:
-        - subnet: 172.20.0.0/24
-
-  public_subnet:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.21.0.0/24
+  room-service:
+    build:
+      context: ./room-service
+      args:
+        GRADLE_USER_HOME: /root/.gradle-room
+    container_name: room-service
+    image: room-service
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: room_db
+      REDIS_HOST: redis
+      DB_USERNAME: room_service
+      JWT_KEYSTORE_LOCATION: keystore.p12
+      JWT_KEYSTORE_PASSWORD: ${JWT_KEYPASSWORD}
+      JWT_KEY_PASSWORD: ${JWT_KEYPASSWORD}
+      KAFKA_SSL_TRUSTSTORE_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_SSL_KEYSTORE_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_SSL_KEY_PASSWORD: ${KAFKA_SSL_PASSWORD}
+      KAFKA_HOST: kafka
+      REDIS_PORT: 6379
+    networks:
+      secret_subnet:
+      private_subnet:
 
 volumes:
   postgres_data:
@@ -258,6 +296,18 @@ volumes:
   cassandra_data:
   kafka_data:
     driver: local
+
+networks:
+  public_subnet:
+    driver: bridge
+
+  private_subnet:
+    driver: bridge
+    internal: true
+
+  secret_subnet:
+    driver: bridge
+    internal: true
 
 secrets:
   kafka_ssl_truststore_password:

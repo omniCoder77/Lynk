@@ -196,6 +196,24 @@ services:
     ports:
       - "8083:8083"
 
+  gateway-service:
+    build:
+      context: ./gateway-service
+      args:
+        GRADLE_USER_HOME: /root/.gradle-gateway
+    container_name: gateway-service
+    image: gateway-service
+    depends_on:
+      redis: { condition: service_healthy }
+      auth-service: { condition: service_started }
+    environment:
+      REDIS_HOST: redis
+    ports:
+      - "8080:8080"
+    networks:
+      private_subnet:
+      public_subnet:
+
   media-service:
     build:
       context: ./media-service
