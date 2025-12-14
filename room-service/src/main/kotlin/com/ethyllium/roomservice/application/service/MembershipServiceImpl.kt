@@ -22,20 +22,19 @@ class MembershipServiceImpl(
         val bannedId = UUIDUtils.merge(roomId.toString(), joinerId.toString())
         return transactionalOperator.execute {
             bannedUserRepository.select(bannedId)
-                .flatMap {
-                    Mono.error<Void>(
-                        UnauthorizedRoomActionException(
-                            "User $joinerId is not allowed to join $roomId"
-                        )
-                    )
+                .flatMap<Void> {
+                    Mono.error(UnauthorizedRoomActionException("User $joinerId is not allowed to join $roomId"))
                 }
                 .switchIfEmpty(
+                    membershipRepository
+                        .select(membershipId = joinerId, roomId = roomId)
+                        .flatMap {
+                            Mono.error(UnauthorizedRoomActionException("User $joinerId is already a member"))
+                        }
+                )
+                .switchIfEmpty(
                     Mono.defer {
-                        val membership = Membership(
-                            userId = joinerId,
-                            roomId = roomId,
-                            role = RoomRole.MEMBER
-                        )
+                        val membership = Membership(userId = joinerId, roomId = roomId, role = RoomRole.MEMBER)
                         membershipRepository.insert(membership)
                     }
                 )
