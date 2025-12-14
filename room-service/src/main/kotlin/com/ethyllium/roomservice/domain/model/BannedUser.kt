@@ -4,7 +4,7 @@ import java.time.Instant
 import java.util.*
 
 data class BannedUser(
-    val banId: UUID, // Created using UUIDUtils.merge()
+    val bannedId: UUID, // Created using UUIDUtils.merge() on unordered/ordered userId and roomId
     val userId: UUID,
     val roomId: UUID,
     val reason: String,

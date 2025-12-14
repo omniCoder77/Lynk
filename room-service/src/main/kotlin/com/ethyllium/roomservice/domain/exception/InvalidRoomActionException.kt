@@ -3,5 +3,5 @@ package com.ethyllium.roomservice.domain.exception
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.ResponseStatus
 
-@ResponseStatus(code = HttpStatus.CONFLICT)
-class RoomAlreadyExistsException(message: String) : RuntimeException(message)
+@ResponseStatus(HttpStatus.BAD_REQUEST)
+class InvalidRoomActionException(message: String) : RuntimeException(message)

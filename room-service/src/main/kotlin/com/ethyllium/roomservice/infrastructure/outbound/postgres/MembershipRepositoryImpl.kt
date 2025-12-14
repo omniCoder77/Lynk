@@ -10,6 +10,7 @@ import org.springframework.data.relational.core.query.Criteria
 import org.springframework.data.relational.core.query.Query
 import org.springframework.data.relational.core.query.Update
 import org.springframework.stereotype.Repository
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.util.*
 
@@ -28,11 +29,12 @@ class MembershipRepositoryImpl(
     }
 
     override fun delete(
-        membershipId: UUID,
+        membershipId: UUID?,
         roomId: UUID?,
         role: RoomRole?
     ): Mono<Long> {
-        var criteria = Criteria.where("membership_id").`is`(membershipId)
+        var criteria = Criteria.empty()
+        membershipId?.let { criteria = criteria.and("membership_id").`is`(it) }
         roomId?.let { criteria = criteria.and("room_id").`is`(it) }
         role?.let { criteria = criteria.and("role").`is`(it.name) }
 
@@ -41,25 +43,24 @@ class MembershipRepositoryImpl(
     }
 
     override fun select(
-        membershipId: UUID,
+        membershipId: UUID?,
         roomId: UUID?,
         roles: Array<RoomRole>
-    ): Mono<Membership> {
+    ): Flux<Membership> {
+        var criteria = Criteria.empty()
 
-        var criteria = Criteria.where("user_id").`is`(membershipId)
-
-        roomId?.let {
-            criteria = criteria.and("room_id").`is`(it)
-        }
-
+        membershipId?.let { criteria = criteria.and("membership_id").`is`(it) }
+        roomId?.let { criteria = criteria.and("room_id").`is`(it) }
         if (roles.isNotEmpty()) {
             criteria = criteria.and("role").`in`(roles.map { it.name })
         }
 
+        if (criteria.isEmpty) return Flux.error(IllegalArgumentException("All select arguments are null"))
+
         val query = Query.query(criteria)
 
         return r2dbcEntityTemplate
-            .selectOne(query, MembershipEntity::class.java)
+            .select(query, MembershipEntity::class.java)
             .map { it.toDomain() }
     }
 }

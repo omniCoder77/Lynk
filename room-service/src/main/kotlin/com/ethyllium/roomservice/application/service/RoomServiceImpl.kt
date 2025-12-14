@@ -1,5 +1,6 @@
 package com.ethyllium.roomservice.application.service
 
+import com.ethyllium.roomservice.domain.exception.InvalidRoomActionException
 import com.ethyllium.roomservice.domain.exception.UnauthorizedRoomActionException
 import com.ethyllium.roomservice.domain.model.Membership
 import com.ethyllium.roomservice.domain.model.Room
@@ -37,17 +38,37 @@ class RoomServiceImpl(
         maxSize: Int?,
         visibility: Visibility?
     ): Mono<Boolean> {
-        return membershipRepository.select(membershipId = updaterId, roomId = roomId, roles = arrayOf(RoomRole.ADMIN, RoomRole.MODERATOR)).switchIfEmpty(Mono.error(
-            UnauthorizedRoomActionException("User does not have permission to update this room"))).flatMap {
-            roomRepository.update(roomName, maxSize, visibility, roomId)
-        }.map { it > 0 }
+        return membershipRepository.select(
+            membershipId = updaterId,
+            roomId = roomId,
+            roles = arrayOf(RoomRole.ADMIN, RoomRole.MODERATOR)
+        )
+            .next() // constraint of unique (membershipId and roomId) is applied on database
+            .switchIfEmpty(
+                Mono.error(
+                    UnauthorizedRoomActionException("User does not have permission to update this room")
+                )
+            )
+            .flatMap {
+                roomRepository.update(roomName, maxSize, visibility, roomId)
+            }.map { it > 0 }
     }
 
     override fun delete(deleterId: UUID, roomId: UUID): Mono<Boolean> {
-        return membershipRepository.select(membershipId = deleterId, roomId = roomId, roles = arrayOf(RoomRole.ADMIN, RoomRole.MODERATOR)).switchIfEmpty(Mono.error(
-            UnauthorizedRoomActionException("User does not have permission to update this room"))).flatMap {
-            roomRepository.delete(roomId)
-        }.map { it > 0 }
+        return membershipRepository.select(membershipId = deleterId, roomId = roomId, roles = arrayOf(RoomRole.ADMIN))
+            .next()
+            .switchIfEmpty(Mono.error(UnauthorizedRoomActionException("User is not authorized to delete this room")))
+            .flatMap {
+                transactionalOperator.execute {
+                    membershipRepository.delete(roomId = roomId, role = null)
+                        .then(roomRepository.delete(roomId))
+                        .map { it > 0 }
+                }.single()
+            }
+    }
 
+    override fun get(roomId: UUID): Mono<Room> {
+        return roomRepository.select(roomId)
+            .switchIfEmpty(Mono.error(InvalidRoomActionException("Room not found")))
     }
 }

@@ -19,24 +19,21 @@ class BannedUserRepositoryImpl(private val r2dbcEntityTemplate: R2dbcEntityTempl
 
     private val logger = LoggerFactory.getLogger(this::class.java)
 
-    override fun insert(bannedUser: BannedUser): Mono<Boolean> {
-        return r2dbcEntityTemplate.insert(bannedUser.toEntity()).map { true }.onErrorResume {
-            logger.error("Error inserting banned user: ${it.message}", it)
-            Mono.just(false)
-        }
+    override fun insert(bannedUser: BannedUser): Mono<Void> {
+        return r2dbcEntityTemplate.insert(bannedUser.toEntity()).then()
     }
 
-    override fun update(bannedUntil: Instant?, bannedId: UUID): Mono<Boolean> {
+    override fun update(bannedUntil: Instant?, bannedId: UUID): Mono<Long> {
         val query = Query.query(Criteria.where("ban_id").`is`(bannedId))
         val update = Update.update("banned_until", bannedUntil)
         return r2dbcEntityTemplate.update(
             query, update, BannedUserEntity::class.java
-        ).map { it > 0 }
+        )
     }
 
-    override fun delete(bannedId: UUID): Mono<Boolean> {
+    override fun delete(bannedId: UUID): Mono<Long> {
         val query = Query.query(Criteria.where("banned_id").`is`(bannedId))
-        return r2dbcEntityTemplate.delete(query, BannedUserEntity::class.java).map { it > 0 }
+        return r2dbcEntityTemplate.delete(query, BannedUserEntity::class.java)
     }
 
     override fun select(bannedId: UUID): Mono<BannedUser> {

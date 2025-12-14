@@ -9,4 +9,5 @@ interface RoomService {
     fun create(room: Room, creatorId: UUID): Mono<Boolean>
     fun update(updaterId: UUID, roomName: String?, roomId: UUID, maxSize: Int?, visibility: Visibility?): Mono<Boolean>
     fun delete(deleterId: UUID, roomId: UUID): Mono<Boolean>
+    fun get(roomId: UUID): Mono<Room>
 }

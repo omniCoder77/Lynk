@@ -16,7 +16,7 @@ data class BannedUserEntity(
     val bannedUntil: Instant? // nullable; null means permanent ban. Entity is removed when ban is lifted or expired
 ) {
     fun toDomain() = BannedUser(
-        banId = bannedId,
+        bannedId = bannedId,
         userId = userId,
         roomId = roomId,
         reason = reason,
@@ -26,7 +26,7 @@ data class BannedUserEntity(
 }
 
 fun BannedUser.toEntity() = BannedUserEntity(
-    bannedId = banId,
+    bannedId = bannedId,
     userId = userId,
     roomId = roomId,
     reason = reason,
