@@ -1,4 +1,4 @@
-# 🚀 Lynk | Reactive Communication Platform
+# ![Lynk Icon](icon.png) Lynk | Reactive Communication Platform
 
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.0-purple?style=flat-square&logo=kotlin)
 ![Java](https://img.shields.io/badge/JVM-21-orange?style=flat-square&logo=java)
